@@ -93,26 +93,14 @@ const groupRoles = {
 // ==========================================
 // --- 3. DAFTAR MEMBERSIHKAN ROLE POLISI ---
 // ==========================================
-// 1. Tas A: Khusus Pangkat (Hanya ini yang diubah saat Promosi)
-const golonganGroupIDs = [
+const allGroupIDs = [
+    POLICE_MAIN_ROLE_ID,    // Role Utama (SAPD)
     '1496865881739890800', // Golongan: Perwira Tinggi
     '1496865881706201281', // Golongan: Perwira Menengah
     '1496865881698074695', // Golongan: Perwira Pertama
     '1496865881698074691', // Golongan: Bintara Polisi
-    '1496865881681166465'  // Golongan: Tamtama
-];
+    '1496865881681166465' // Golongan: Tamtama
 
-// 2. Tas B: Semua Baju (Untuk PTDH/Resign)
-const allGroupIDs = [
-    POLICE_MAIN_ROLE_ID,
-    ...golonganGroupIDs, // Ini mengambil semua isi dari Tas A
-    '1496865881727176759', // Divisi: Propam
-    '1496865881727176758', // Divisi: Keuangan
-    '1496865881672912905', // Divisi: Biro SDM
-    '1496865881672912904', // Divisi: Brimob
-    '1496865881672912903', // Divisi: Sabhara
-    '1496865881672912902', // Divisi: Lantas
-    '1496865881672912901'  // Divisi: Reskrim
 ];
 
 // ==========================================
@@ -400,29 +388,78 @@ async function processPromotion(
         console.log(`Status: ${status || 'NORMAL'}`);
         console.log(`Pangkat Baru ID: ${newRankID || 'N/A'}`);
 
-        // Jika PTDH atau RESIGN
-    if (status === 'PTDH' || status === 'RESIGN') {
-        // Hapus SEMUA role (Sapu bersih pakai Tas B)
-        for (const groupID of allGroupIDs) {
-            if (member.roles.cache.has(groupID)) {
-                await member.roles.remove(groupID).catch(() => null);
+        // ===== PROSES PTDH (Pensiun Tidak Dengan Hormat) =====
+        if (status === 'PTDH') {
+            // 1. Cabut semua role polisi
+            for (const groupID of allGroupIDs) {
+                if (member.roles.cache.has(groupID)) {
+                    await member.roles.remove(groupID).catch(() => null);
+                }
             }
-        }
 
-        // Tambahkan role Warga
-        if (!member.roles.cache.has(WARGA_ROLE_ID)) {
-            await member.roles.add(WARGA_ROLE_ID).catch(console.error);
-        }
+            // 2. Cabut pangkat jika ada
+            if (prevRankID && member.roles.cache.has(prevRankID)) {
+                await member.roles.remove(prevRankID).catch(() => null);
+            }
 
-        // Ganti Nama (Nickname)
-        let cleanName = member.displayName;
-        if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
-        const prefix = (status === 'PTDH') ? 'PTDH' : 'EX';
-        const newNickname = `${prefix} | ${cleanName}`.substring(0, 32);
-        
-        await member.setNickname(newNickname).catch(() => null);
-        return; // SELESAI
-    }
+            // 3. Cabut divisi jika ada
+            if (prevDivID && member.roles.cache.has(prevDivID)) {
+                await member.roles.remove(prevDivID).catch(() => null);
+            }
+
+            // 4. Cabut jabatan jika ada
+            if (prevPositionID && member.roles.cache.has(prevPositionID)) {
+                await member.roles.remove(prevPositionID).catch(() => null);
+            }
+
+            // 5. Tetap role Warga, ubah nickname
+            if (!member.roles.cache.has(WARGA_ROLE_ID)) {
+                await member.roles.add(WARGA_ROLE_ID).catch(console.error);
+            }
+
+            let cleanName = member.displayName;
+            if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
+            const newNickname = `PTDH | ${cleanName}`.substring(0, 32);
+            await member.setNickname(newNickname).catch(() => null);
+
+            console.log(`✅ PTDH diproses: ${member.user.tag} → Nickname: ${newNickname}`);
+        }
+        // ===== PROSES RESIGN (Keluar/Berhenti) =====
+        else if (status === 'RESIGN') {
+            // 1. Cabut semua role polisi
+            for (const groupID of allGroupIDs) {
+                if (member.roles.cache.has(groupID)) {
+                    await member.roles.remove(groupID).catch(() => null);
+                }
+            }
+
+            // 2. Cabut pangkat jika ada
+            if (prevRankID && member.roles.cache.has(prevRankID)) {
+                await member.roles.remove(prevRankID).catch(() => null);
+            }
+
+            // 3. Cabut divisi jika ada
+            if (prevDivID && member.roles.cache.has(prevDivID)) {
+                await member.roles.remove(prevDivID).catch(() => null);
+            }
+
+            // 4. Cabut jabatan jika ada
+            if (prevPositionID && member.roles.cache.has(prevPositionID)) {
+                await member.roles.remove(prevPositionID).catch(() => null);
+            }
+
+            // 5. Tetap role Warga, ubah nickname
+            if (!member.roles.cache.has(WARGA_ROLE_ID)) {
+                await member.roles.add(WARGA_ROLE_ID).catch(console.error);
+            }
+
+            let cleanName = member.displayName;
+            if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
+            const newNickname = `EX | ${cleanName}`.substring(0, 32);
+            await member.setNickname(newNickname).catch(() => null);
+
+            console.log(`✅ RESIGN diproses: ${member.user.tag} → Nickname: ${newNickname}`);
+        }
         // ===== PROSES NORMAL (PROMOSI/DEMOSI/ROTASI) =====
         else {
             // Update Pangkat
@@ -438,15 +475,14 @@ async function processPromotion(
                 console.log(`  ✅ Pangkat baru ditambah: ${newRankID}`);
             }
 
-            // --- BAGIAN UPDATE DIVISI ---
-
-            // 1. Hapus Divisi Lama (jika ada)
+            // Update Divisi DIPERBAIKI
             if (prevDivID && member.roles.cache.has(prevDivID)) {
                 await member.roles.remove(prevDivID).catch(() => null);
                 console.log(`  ❌ Divisi lama dihapus: ${prevDivID}`);
+            } else if (prevDivID) {
+                console.log(`  ⚠️ Divisi lama tidak ditemukan di member: ${prevDivID}`);
             }
 
-            // 2. Tambahkan Divisi Baru (INI YANG AKAN MENAMBAHKAN ROLE KE USER)
             if (newDivID) {
                 await member.roles.add(newDivID).catch(console.error);
                 console.log(`  ✅ Divisi baru ditambah: ${newDivID}`);
@@ -468,14 +504,13 @@ async function processPromotion(
             // Sinkronisasi Group Role
             if (newRankID && groupRoles[newRankID]) {
                 const targetGroupID = groupRoles[newRankID];
-                
-                // Ganti ke golonganGroupIDs supaya Divisi tidak ikut terhapus
-                for (const groupID of golonganGroupIDs) { 
+                for (const groupID of allGroupIDs) {
                     if (member.roles.cache.has(groupID) && groupID !== targetGroupID && groupID !== POLICE_MAIN_ROLE_ID) {
                         await member.roles.remove(groupID).catch(() => null);
                     }
                 }
                 await member.roles.add(targetGroupID).catch(console.error);
+                console.log(`  🔄 Group role diperbarui: ${targetGroupID}`);
             }
 
             // Update Prefix Nickname DIPERBAIKI - SELALU JALANKAN
