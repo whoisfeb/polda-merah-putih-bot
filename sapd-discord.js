@@ -224,17 +224,20 @@ function parseNewSuratFormat(content) {
         }
     }
 
-    // g. Satuan Baru - DIPERBAIKI: Ubah lookahead dari 'h' menjadi 'h.' agar lebih akurat
+    // g. Satuan Baru - DIPERBAIKI: Dua langkah parsing, pertama langsung direct mention, kedua fallback
     let satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*<@&(\d+)>/i);
     if (satBaruMatch) {
         data.newDivID = satBaruMatch[1];
+        console.log(`    ✓ Satuan Baru (direct): ${data.newDivID}`);
     } else {
-        // PERBAIKAN: Menggunakan lookahead yang lebih akurat
         satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*([^h]*?)(?=\nh\.|$)/i);
         if (satBaruMatch) {
             const roleMatch = satBaruMatch[1].match(/<@&(\d+)>/);
             if (roleMatch) {
                 data.newDivID = roleMatch[1];
+                console.log(`    ✓ Satuan Baru (fallback): ${data.newDivID}`);
+            } else {
+                console.log(`    ⚠️ Satuan Baru tidak ada role mention: "${satBaruMatch[1].trim()}"`);
             }
         }
     }
@@ -253,18 +256,14 @@ function parseNewSuratFormat(content) {
 
 /**
  * Cek apakah field adalah "-" atau "N/A" atau null/undefined
- * DIPERBAIKI: Menambahkan pengecekan untuk null dan undefined secara eksplisit
  */
 function isNullField(value) {
-    // Jika value adalah null atau undefined, dianggap sebagai null field
     if (value === null || value === undefined) {
         return true;
     }
-    // Jika value adalah string literal "-" atau "N/A"
     if (value === '-' || value === 'N/A' || value === 'n/a') {
         return true;
     }
-    // Jika value adalah falsy (empty string, 0, false, dll)
     if (!value) {
         return true;
     }
@@ -297,6 +296,82 @@ function getRankPrefix(roleID, guild) {
     // Fallback: gunakan roleID sebagai prefix jika tidak ditemukan
     console.warn(`  ⚠️ Prefix tidak ditemukan untuk roleID: ${roleID}`);
     return 'UNKNOWN';
+}
+
+/**
+ * Helper: Tambah role dengan delay & retry jika perlu
+ */
+async function addRoleWithRetry(member, roleID, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // Cek apakah role sudah ada
+            if (member.roles.cache.has(roleID)) {
+                console.log(`    ✓ Role sudah ada: ${roleID}`);
+                return true;
+            }
+
+            // Coba tambah role
+            await member.roles.add(roleID);
+            
+            // Tunggu sebentar untuk sinkronisasi Discord API
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Verifikasi role berhasil ditambah
+            if (member.roles.cache.has(roleID)) {
+                console.log(`    ✓ Role berhasil ditambah: ${roleID}`);
+                return true;
+            } else {
+                console.log(`    ⚠️ Role ditambah tapi belum sinkronisasi (attempt ${attempt}/${maxRetries})`);
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        } catch (err) {
+            console.error(`    ❌ Error menambah role (attempt ${attempt}/${maxRetries}): ${err.message}`);
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Helper: Cabut role dengan delay & retry jika perlu
+ */
+async function removeRoleWithRetry(member, roleID, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // Cek apakah role ada
+            if (!member.roles.cache.has(roleID)) {
+                console.log(`    ✓ Role sudah tidak ada: ${roleID}`);
+                return true;
+            }
+
+            // Coba cabut role
+            await member.roles.remove(roleID);
+            
+            // Tunggu sebentar untuk sinkronisasi Discord API
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Verifikasi role berhasil dicabut
+            if (!member.roles.cache.has(roleID)) {
+                console.log(`    ✓ Role berhasil dicabut: ${roleID}`);
+                return true;
+            } else {
+                console.log(`    ⚠️ Role dicabut tapi belum sinkronisasi (attempt ${attempt}/${maxRetries})`);
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        } catch (err) {
+            console.error(`    ❌ Error mencabut role (attempt ${attempt}/${maxRetries}): ${err.message}`);
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    }
+    return false;
 }
 
 client.on('messageCreate', async (message) => {
@@ -416,28 +491,28 @@ async function processPromotion(
             // 1. Cabut semua role polisi
             for (const groupID of allGroupIDs) {
                 if (member.roles.cache.has(groupID)) {
-                    await member.roles.remove(groupID).catch(() => null);
+                    await removeRoleWithRetry(member, groupID);
                 }
             }
 
             // 2. Cabut pangkat jika ada
             if (prevRankID && member.roles.cache.has(prevRankID)) {
-                await member.roles.remove(prevRankID).catch(() => null);
+                await removeRoleWithRetry(member, prevRankID);
             }
 
             // 3. Cabut divisi jika ada
             if (prevDivID && member.roles.cache.has(prevDivID)) {
-                await member.roles.remove(prevDivID).catch(() => null);
+                await removeRoleWithRetry(member, prevDivID);
             }
 
             // 4. Cabut jabatan jika ada
             if (prevPositionID && member.roles.cache.has(prevPositionID)) {
-                await member.roles.remove(prevPositionID).catch(() => null);
+                await removeRoleWithRetry(member, prevPositionID);
             }
 
             // 5. Tetap role Warga, ubah nickname
             if (!member.roles.cache.has(WARGA_ROLE_ID)) {
-                await member.roles.add(WARGA_ROLE_ID).catch(console.error);
+                await addRoleWithRetry(member, WARGA_ROLE_ID);
             }
 
             let cleanName = member.displayName;
@@ -452,28 +527,28 @@ async function processPromotion(
             // 1. Cabut semua role polisi
             for (const groupID of allGroupIDs) {
                 if (member.roles.cache.has(groupID)) {
-                    await member.roles.remove(groupID).catch(() => null);
+                    await removeRoleWithRetry(member, groupID);
                 }
             }
 
             // 2. Cabut pangkat jika ada
             if (prevRankID && member.roles.cache.has(prevRankID)) {
-                await member.roles.remove(prevRankID).catch(() => null);
+                await removeRoleWithRetry(member, prevRankID);
             }
 
             // 3. Cabut divisi jika ada
             if (prevDivID && member.roles.cache.has(prevDivID)) {
-                await member.roles.remove(prevDivID).catch(() => null);
+                await removeRoleWithRetry(member, prevDivID);
             }
 
             // 4. Cabut jabatan jika ada
             if (prevPositionID && member.roles.cache.has(prevPositionID)) {
-                await member.roles.remove(prevPositionID).catch(() => null);
+                await removeRoleWithRetry(member, prevPositionID);
             }
 
             // 5. Tetap role Warga, ubah nickname
             if (!member.roles.cache.has(WARGA_ROLE_ID)) {
-                await member.roles.add(WARGA_ROLE_ID).catch(console.error);
+                await addRoleWithRetry(member, WARGA_ROLE_ID);
             }
 
             let cleanName = member.displayName;
@@ -487,20 +562,20 @@ async function processPromotion(
         else {
             // Update Pangkat
             if (prevRankID && member.roles.cache.has(prevRankID)) {
-                await member.roles.remove(prevRankID).catch(() => null);
+                await removeRoleWithRetry(member, prevRankID);
                 console.log(`  ❌ Pangkat lama dihapus: ${prevRankID}`);
             } else if (prevRankID) {
                 console.log(`  ⚠️ Pangkat lama tidak ditemukan di member: ${prevRankID}`);
             }
 
             if (newRankID) {
-                await member.roles.add(newRankID).catch(console.error);
+                await addRoleWithRetry(member, newRankID);
                 console.log(`  ✅ Pangkat baru ditambah: ${newRankID}`);
             }
 
-            // Update Divisi - DIPERBAIKI: Menambah debug logging untuk tracking
+            // Update Divisi - MENGGUNAKAN HELPER DENGAN RETRY
             if (prevDivID && member.roles.cache.has(prevDivID)) {
-                await member.roles.remove(prevDivID).catch(() => null);
+                await removeRoleWithRetry(member, prevDivID);
                 console.log(`  ❌ Divisi lama dihapus: ${prevDivID}`);
             } else if (prevDivID) {
                 console.log(`  ⚠️ Divisi lama tidak ditemukan di member: ${prevDivID}`);
@@ -508,24 +583,26 @@ async function processPromotion(
 
             if (newDivID) {
                 console.log(`  🔍 Mencoba menambah divisi baru: ${newDivID}`);
-                await member.roles.add(newDivID).catch((err) => {
-                    console.error(`  ❌ Gagal menambah divisi: ${err.message}`);
-                });
-                console.log(`  ✅ Divisi baru ditambah: ${newDivID}`);
+                const divisiSuccess = await addRoleWithRetry(member, newDivID, 5); // 5 attempts
+                if (divisiSuccess) {
+                    console.log(`  ✅ Divisi baru berhasil ditambah & tersinkronisasi: ${newDivID}`);
+                } else {
+                    console.log(`  ❌ GAGAL menambah divisi setelah 5 attempts: ${newDivID}`);
+                }
             } else {
                 console.log(`  ℹ️ Tidak ada divisi baru untuk ditambah`);
             }
 
             // Update Jabatan
             if (prevPositionID && member.roles.cache.has(prevPositionID)) {
-                await member.roles.remove(prevPositionID).catch(() => null);
+                await removeRoleWithRetry(member, prevPositionID);
                 console.log(`  ❌ Jabatan lama dihapus: ${prevPositionID}`);
             } else if (prevPositionID) {
                 console.log(`  ⚠️ Jabatan lama tidak ditemukan di member: ${prevPositionID}`);
             }
 
             if (newPositionID) {
-                await member.roles.add(newPositionID).catch(console.error);
+                await addRoleWithRetry(member, newPositionID);
                 console.log(`  ✅ Jabatan baru ditambah: ${newPositionID}`);
             }
 
@@ -534,14 +611,14 @@ async function processPromotion(
                 const targetGroupID = groupRoles[newRankID];
                 for (const groupID of allGroupIDs) {
                     if (member.roles.cache.has(groupID) && groupID !== targetGroupID && groupID !== POLICE_MAIN_ROLE_ID) {
-                        await member.roles.remove(groupID).catch(() => null);
+                        await removeRoleWithRetry(member, groupID);
                     }
                 }
-                await member.roles.add(targetGroupID).catch(console.error);
+                await addRoleWithRetry(member, targetGroupID);
                 console.log(`  🔄 Group role diperbarui: ${targetGroupID}`);
             }
 
-            // Update Prefix Nickname DIPERBAIKI - SELALU JALANKAN
+            // Update Prefix Nickname
             if (newRankID) {
                 console.log(`  🔍 Mencari prefix untuk rank ID: ${newRankID}`);
                 const prefix = getRankPrefix(newRankID, message.guild);
