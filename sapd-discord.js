@@ -51,7 +51,6 @@ const rankPrefixes = {
     '1496865881681166459': 'BHARADA'
 };
 
-
 // ==========================================
 // --- 2. MAPPING ROLE KELOMPOK (GROUPS) ---
 // ==========================================
@@ -89,7 +88,6 @@ const groupRoles = {
     '1496865881681166459': '1496865881681166465'  // Bhayangkara Dua
 };
 
-
 // ==========================================
 // --- 3. DAFTAR MEMBERSIHKAN ROLE POLISI ---
 // ==========================================
@@ -99,443 +97,247 @@ const allGroupIDs = [
     '1496865881706201281', // Golongan: Perwira Menengah
     '1496865881698074695', // Golongan: Perwira Pertama
     '1496865881698074691', // Golongan: Bintara Polisi
-    '1496865881681166465' // Golongan: Tamtama
-
+    '1496865881681166465', // Golongan: Tamtama
+    '1496865881727176759', // Divisi: Propam (IAD)
+    '1496865881727176758', // Divisi: Keuangan Polda
+    '1496865881672912905', // Divisi: Biro SDM (HRB)
+    '1496865881672912904', // Divisi: Brimob
+    '1496865881672912903', // Divisi: Sabhara (Metropolitan)
+    '1496865881672912902', // Divisi: Lantas (Highway Patrol)
+    '1496865881672912901'  // Divisi: Reskrim (Detective)
 ];
 
 // ==========================================
-// --- 4. DAFTAR JABATAN ROLE (POSITIONS) ---
+// --- HELPER FUNCTIONS ---
 // ==========================================
-const positionRoles = {
-    // Tambahkan mapping jabatan role di sini jika ada
-    // Format: 'roleID': 'positionName'
-};
 
+/**
+ * Extract user mention from text and return user ID
+ * Format: <@123456789> or <@!123456789>
+ */
+function extractUserID(text) {
+    const match = text.match(/<@!?(\d+)>/);
+    return match ? match[1] : null;
+}
+
+/**
+ * Extract role mention from text and return role ID
+ * Format: <@&123456789>
+ */
+function extractRoleID(text) {
+    const match = text.match(/<@&(\d+)>/);
+    return match ? match[1] : null;
+}
+
+/**
+ * Check if a value is considered "empty" (-, N/A, or similar)
+ */
+function isEmpty(value) {
+    if (!value) return true;
+    const cleaned = value.trim().toLowerCase();
+    return cleaned === '-' || cleaned === 'n/a' || cleaned === 'na' || cleaned === '';
+}
+
+/**
+ * Parse the official promotion/demotion letter format
+ * Extracts data from "Pihak Terkait" section
+ */
+function parsePromotionLetter(messageContent) {
+    try {
+        // Find "Pihak Terkait" section
+        const pihakTerkaitStart = messageContent.indexOf('Pihak Terkait');
+        if (pihakTerkaitStart === -1) {
+            console.log('Section "Pihak Terkait" not found');
+            return null;
+        }
+
+        // Extract from "Pihak Terkait" until next major section or end
+        const afterPihakTerkait = messageContent.substring(pihakTerkaitStart);
+        const nextSectionIndex = afterPihakTerkait.indexOf('Bersama ini saya membuat');
+        const pihakTerkaitContent = nextSectionIndex !== -1 
+            ? afterPihakTerkait.substring(0, nextSectionIndex) 
+            : afterPihakTerkait;
+
+        // Extract each field
+        const namaMatch = pihakTerkaitContent.match(/a\.\s*Nama\s*:\s*(.+?)(?=\nb\.|$)/s);
+        const pangkatLamaMatch = pihakTerkaitContent.match(/b\.\s*Pangkat Lama\s*:\s*(.+?)(?=\nc\.|$)/s);
+        const pangkatBaruMatch = pihakTerkaitContent.match(/c\.\s*Pangkat Baru\s*:\s*(.+?)(?=\nd\.|$)/s);
+        const jabatanLamaMatch = pihakTerkaitContent.match(/d\.\s*Jabatan Lama\s*:\s*(.+?)(?=\ne\.|$)/s);
+        const jabatanBaruMatch = pihakTerkaitContent.match(/e\.\s*Jabatan Baru\s*:\s*(.+?)(?=\nf\.|$)/s);
+        const satuanLamaMatch = pihakTerkaitContent.match(/f\.\s*Satuan Lama\s*:\s*(.+?)(?=\ng\.|$)/s);
+        const satuanBaruMatch = pihakTerkaitContent.match(/g\.\s*Satuan Baru\s*:\s*(.+?)(?=\nh\.|$)/s);
+        const statusMatch = pihakTerkaitContent.match(/h\.\s*Status\s*:\s*(.+?)(?=\n|$)/s);
+
+        // Extract user ID from name field (if contains mention)
+        const nama = namaMatch ? namaMatch[1].trim() : null;
+        const userID = nama ? extractUserID(nama) : null;
+
+        if (!userID) {
+            console.log('User mention not found in Nama field');
+            return null;
+        }
+
+        const pangkatLama = pangkatLamaMatch ? pangkatLamaMatch[1].trim() : null;
+        const pangkatBaru = pangkatBaruMatch ? pangkatBaruMatch[1].trim() : null;
+        const jabatanLama = jabatanLamaMatch ? jabatanLamaMatch[1].trim() : null;
+        const jabatanBaru = jabatanBaruMatch ? jabatanBaruMatch[1].trim() : null;
+        const satuanLama = satuanLamaMatch ? satuanLamaMatch[1].trim() : null;
+        const satuanBaru = satuanBaruMatch ? satuanBaruMatch[1].trim() : null;
+        const status = statusMatch ? statusMatch[1].trim().toUpperCase() : null;
+
+        return {
+            userID,
+            pangkatLama: isEmpty(pangkatLama) ? null : pangkatLama,
+            pangkatBaru: isEmpty(pangkatBaru) ? null : pangkatBaru,
+            jabatanLama: isEmpty(jabatanLama) ? null : jabatanLama,
+            jabatanBaru: isEmpty(jabatanBaru) ? null : jabatanBaru,
+            satuanLama: isEmpty(satuanLama) ? null : satuanLama,
+            satuanBaru: isEmpty(satuanBaru) ? null : satuanBaru,
+            status: isEmpty(status) ? null : status,
+        };
+    } catch (error) {
+        console.error('Error parsing promotion letter:', error);
+        return null;
+    }
+}
 
 client.once('ready', () => {
     console.log(`Bot login sebagai ${client.user.tag}`);
     const notifChannel = client.channels.cache.get(NOTIF_CHANNEL_ID);
     if (notifChannel) {
-        notifChannel.send(`✅ **Sistem POLDA Online** | ${new Date().toLocaleString('id-ID')} | Status: Menunggu Promosi/Demotion... \n\n*Bot ini akan otomatis memproses promosi/demotion/rotasi/PTDH/resign berdasarkan format yang ditentukan di channel promosi.*\n*Pastikan format benar agar bot dapat memproses dengan lancar.*\n*Ketika tidak ada aktivitas yang sesuai format di channel <#${PROMOTION_CHANNEL_ID}> maka bot akan offline.*\n@everyone`)
+        notifChannel.send(`✅ **Sistem SAPD Online** | ${new Date().toLocaleString('id-ID')} | Status: Menunggu Promosi/Demotion... \n\n*Bot ini akan otomatis memproses promosi/demotion berdasarkan format surat resmi yang ditentukan di channel promosi.*\n*Pastikan format surat benar agar bot dapat memproses dengan lancar.*\n*Ketika tidak ada aktivitas yang sesuai format di channel <#1444904948692422756> maka bot akan offline.*\n@everyone`)
         .catch(console.error);
     }
 });
 
-/**
- * Parse format surat POLDA baru (PROMOSI/DEMOSI/ROTASI/PTDH/RESIGN)
- * Membaca pola FLEXIBLE:
- * a. Nama: <@userID> atau mention apapun
- * b. Pangkat Lama: <@&rankID> atau emoji atau text
- * c. Pangkat Baru: <@&rankID> atau emoji atau text
- * d. Jabatan Lama: <@&jabatanID> atau - atau N/A
- * e. Jabatan Baru: <@&jabatanID> atau - atau N/A
- * f. Satuan Lama: <@&divID> atau - atau N/A
- * g. Satuan Baru: <@&divID> atau - atau N/A
- * h. Status: PTDH atau RESIGN atau (kosong/-)
- */
-function parseNewSuratFormat(content) {
-    // 1. ISOLASI: Ambil hanya bagian setelah "Pihak Terkait"
-    const splitContent = content.split(/Pihak Terkait/i);
-    // Jika ada bagian "Pihak Terkait", ambil teks setelahnya. Jika tidak, gunakan content asli.
-    const body = splitContent.length > 1 ? splitContent[1] : content;
-
-    const data = {
-        userID: null,
-        prevRankID: null,
-        newRankID: null,
-        prevPositionID: null,
-        newPositionID: null,
-        prevDivID: null,
-        newDivID: null,
-        status: null
-    };
-
-    // 2. PARSING: Gunakan 'body' (bukan 'content') agar fokus pada bagian yang sudah diisolasi
-    
-    // a. Nama
-    let namaMatch = body.match(/a\.\s*Nama\s*[:*]*\s*<@!?(\d+)>/i);
-    if (namaMatch) data.userID = namaMatch[1];
-    else {
-        namaMatch = body.match(/a\.\s*Nama\s*[:*]*\s*([^b]*?)(?=\nb\.|$)/i);
-        if (namaMatch) {
-            const match = namaMatch[1].match(/<@!?(\d+)>/);
-            if (match) data.userID = match[1];
-        }
-    }
-
-    // b. Pangkat Lama
-    let pangkatLamaMatch = body.match(/b\.\s*Pangkat\s*Lama\s*[:*]*\s*<@&(\d+)>/i);
-    if (pangkatLamaMatch) data.prevRankID = pangkatLamaMatch[1];
-    else {
-        pangkatLamaMatch = body.match(/b\.\s*Pangkat\s*Lama\s*[:*]*\s*([^c]*?)(?=\nc\.|$)/i);
-        if (pangkatLamaMatch) {
-            const match = pangkatLamaMatch[1].match(/<@&(\d+)>/);
-            if (match) data.prevRankID = match[1];
-        }
-    }
-
-    // c. Pangkat Baru
-    let pangkatBaruMatch = body.match(/c\.\s*Pangkat\s*Baru\s*[:*]*\s*<@&(\d+)>/i);
-    if (pangkatBaruMatch) data.newRankID = pangkatBaruMatch[1];
-    else {
-        pangkatBaruMatch = body.match(/c\.\s*Pangkat\s*Baru\s*[:*]*\s*([^d]*?)(?=\nd\.|$)/i);
-        if (pangkatBaruMatch) {
-            const match = pangkatBaruMatch[1].match(/<@&(\d+)>/);
-            if (match) data.newRankID = match[1];
-        }
-    }
-
-    // d. Jabatan Lama
-    let jabatanLamaMatch = body.match(/d\.\s*Jabatan\s*Lama\s*[:*]*\s*<@&(\d+)>/i);
-    if (jabatanLamaMatch) data.prevPositionID = jabatanLamaMatch[1];
-    else {
-        jabatanLamaMatch = body.match(/d\.\s*Jabatan\s*Lama\s*[:*]*\s*([^e]*?)(?=\ne\.|$)/i);
-        if (jabatanLamaMatch) {
-            const match = jabatanLamaMatch[1].match(/<@&(\d+)>/);
-            if (match) data.prevPositionID = match[1];
-        }
-    }
-
-    // e. Jabatan Baru
-    let jabatanBaruMatch = body.match(/e\.\s*Jabatan\s*Baru\s*[:*]*\s*<@&(\d+)>/i);
-    if (jabatanBaruMatch) data.newPositionID = jabatanBaruMatch[1];
-    else {
-        jabatanBaruMatch = body.match(/e\.\s*Jabatan\s*Baru\s*[:*]*\s*([^f]*?)(?=\nf\.|$)/i);
-        if (jabatanBaruMatch) {
-            const match = jabatanBaruMatch[1].match(/<@&(\d+)>/);
-            if (match) data.newPositionID = match[1];
-        }
-    }
-
-    // f. Satuan Lama
-    let satLamaMatch = body.match(/f\.\s*Satuan\s*Lama\s*[:*]*\s*<@&(\d+)>/i);
-    if (satLamaMatch) data.prevDivID = satLamaMatch[1];
-    else {
-        satLamaMatch = body.match(/f\.\s*Satuan\s*Lama\s*[:*]*\s*([^g]*?)(?=\ng\.|$)/i);
-        if (satLamaMatch) {
-            const match = satLamaMatch[1].match(/<@&(\d+)>/);
-            if (match) data.prevDivID = match[1];
-        }
-    }
-
-    // g. Satuan Baru
-    let satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*<@&(\d+)>/i);
-    if (satBaruMatch) data.newDivID = satBaruMatch[1];
-    else {
-        satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*([^h]*?)(?=\nh\.|$)/i);
-        if (satBaruMatch) {
-            const match = satBaruMatch[1].match(/<@&(\d+)>/);
-            if (match) data.newDivID = match[1];
-        }
-    }
-
-    // h. Status
-    const statusMatch = body.match(/h\.\s*Status\s*[:*]*\s*(\w+)/i);
-    if (statusMatch) {
-        const statusValue = statusMatch[1].toUpperCase();
-        if (statusValue === 'PTDH' || statusValue === 'RESIGN' || statusValue === 'DEMOSI') {
-            data.status = statusValue;
-        }
-    }
-
-    return data;
-}
-
-/**
- * Cek apakah field adalah "-" atau "N/A"
- */
-function isNullField(value) {
-    return value === '-' || value === 'N/A' || value === 'n/a' || !value;
-}
-
-/**
- * Get role name dari role ID (dengan caching dari rankPrefixes atau fallback ke role name)
- */
-function getRankPrefix(roleID, guild) {
-    // Priority 1: Check rankPrefixes mapping
-    if (rankPrefixes[roleID]) {
-        console.log(`  📌 Prefix dari rankPrefixes: ${rankPrefixes[roleID]}`);
-        return rankPrefixes[roleID];
-    }
-
-    // Priority 2: Try to get role dari guild dan ambil nama role-nya
-    if (guild) {
-        const role = guild.roles.cache.get(roleID);
-        if (role) {
-            // Hapus emoji dan icons dari nama role
-            let cleanName = role.name.replace(/[⭐🔶]/g, '').trim();
-            // Ambil 10 karakter pertama sebagai prefix
-            const prefix = cleanName.substring(0, 10).toUpperCase();
-            console.log(`  📌 Prefix dari role name: ${prefix} (dari: "${role.name}")`);
-            return prefix;
-        }
-    }
-
-    // Fallback: gunakan roleID sebagai prefix jika tidak ditemukan
-    console.warn(`  ⚠️ Prefix tidak ditemukan untuk roleID: ${roleID}`);
-    return 'UNKNOWN';
-}
-
 client.on('messageCreate', async (message) => {
     if (message.author.bot || message.channel.id !== PROMOTION_CHANNEL_ID) return;
 
-    let isFail = false;
-
-    // Cek format lama
-    const isOldFormat = message.content.includes('**PROMOTION**') || message.content.includes('**DEMOTION**');
-    
-    // Cek format baru (SURAT POLDA)
-    const isNewFormat = message.content.includes('Pihak Terkait') && 
-                       (message.content.includes('Pangkat') || 
-                        message.content.includes('Jabatan') || 
-                        message.content.includes('Status'));
-
-    if (!isOldFormat && !isNewFormat) return;
-
-    try {
-        if (isOldFormat) {
-            // ===== PROSES FORMAT LAMA =====
-            const nameLine = message.content.match(/Name:\s*(.*)/i);
-            const userMatches = nameLine ? nameLine[1].match(/<@!?(\d+)>/g) : null;
-            const prevRankMatch = message.content.match(/Previous Rank:\s*<@&(\d+)>/i);
-            const newRankMatch = message.content.match(/Rank to be (?:promoted|demoted):\s*<@&(\d+)>/i);
-            
-            const prevDivLine = message.content.match(/Previous Division\s*:\s*(.*)/i);
-            const prevDivs = prevDivLine ? prevDivLine[1].match(/<@&(\d+)>/g) : null;
-            
-            const newDivLine = message.content.match(/(?:Moved to this division|Moved to this\s+division)\s*:?\s*(.*)/i);
-            const newDivs = newDivLine ? newDivLine[1].match(/<@&(\d+)>/g) : null;
-
-            if (!userMatches) {
-                isFail = true;
-                return;
-            }
-
-            for (const mention of userMatches) {
-                const userID = mention.replace(/[<@!>]/g, '');
-                const prevRankID = prevRankMatch ? prevRankMatch[1] : null;
-                const newRankID = newRankMatch ? newRankMatch[1] : null;
-                const prevDivID = prevDivs ? prevDivs[0].replace(/[<@&>]/g, '') : null;
-                const newDivID = newDivs ? newDivs[0].replace(/[<@&>]/g, '') : null;
-
-                await processPromotion(message, userID, prevRankID, newRankID, prevDivID, newDivID, null, null, null);
-            }
-        } else if (isNewFormat) {
-            // ===== PROSES FORMAT BARU (SURAT POLDA) =====
-            const parsed = parseNewSuratFormat(message.content);
-            
-            console.log(`\n📊 === PARSING DEBUG ===`);
-            console.log(`userID: ${parsed.userID}`);
-            console.log(`prevRankID: ${parsed.prevRankID}`);
-            console.log(`newRankID: ${parsed.newRankID}`);
-            console.log(`prevDivID: ${parsed.prevDivID}`);
-            console.log(`newDivID: ${parsed.newDivID}`);
-            console.log(`status: ${parsed.status}`);
-
-            if (!parsed.userID) {
-                console.error(`❌ userID tidak ditemukan!`);
-                isFail = true;
-                return;
-            }
-
-            await processPromotion(
-                message,
-                parsed.userID,
-                isNullField(parsed.prevRankID) ? null : parsed.prevRankID,
-                isNullField(parsed.newRankID) ? null : parsed.newRankID,
-                isNullField(parsed.prevDivID) ? null : parsed.prevDivID,
-                isNullField(parsed.newDivID) ? null : parsed.newDivID,
-                isNullField(parsed.prevPositionID) ? null : parsed.prevPositionID,
-                isNullField(parsed.newPositionID) ? null : parsed.newPositionID,
-                parsed.status
-            );
-        }
-
-        if (!isFail) {
-            await message.react('✅');
-        }
-    } catch (error) {
-        console.error(`Error memproses pesan:`, error);
-        await message.react('❌').catch(() => null);
+    // Check if message contains the official letter format
+    if (!message.content.includes('Pihak Terkait') || !message.content.includes('Bersama ini saya membuat')) {
+        return;
     }
-});
 
-/**
- * Process promotion/demotion/rotation/PTDH/RESIGN
- */
-async function processPromotion(
-    message, 
-    userID, 
-    prevRankID, 
-    newRankID, 
-    prevDivID, 
-    newDivID,
-    prevPositionID,
-    newPositionID,
-    status
-) {
+    // Parse the promotion letter
+    const letterData = parsePromotionLetter(message.content);
+    
+    if (!letterData) {
+        console.log('Failed to parse promotion letter');
+        await message.react('❌').catch(() => null);
+        return;
+    }
+
+    const { userID, pangkatLama, pangkatBaru, jabatanLama, jabatanBaru, satuanLama, satuanBaru, status } = letterData;
+
     try {
         const member = await message.guild.members.fetch(userID);
         const botMember = message.guild.members.me;
 
-        // PROTEKSI HIERARKI
+        // PROTEKSI HIERARKI: Bot tidak bisa ubah member yang rolenya lebih tinggi dari bot
         if (member.roles.highest.position >= botMember.roles.highest.position) {
             console.warn(`[SKIP] Role ${member.user.tag} terlalu tinggi untuk Bot.`);
+            await message.react('⚠️').catch(() => null);
             return;
         }
 
-        console.log(`\n📋 === Memproses ${member.user.tag} ===`);
-        console.log(`Status: ${status || 'NORMAL'}`);
-        console.log(`Pangkat Baru ID: ${newRankID || 'N/A'}`);
+        // --- PROSES BERDASARKAN STATUS ---
+        // Status PTDH atau RESIGN: Hapus semua role kepolisian
+        if (status === 'PTDH' || status === 'RESIGN') {
+            // 1. Cabut Pangkat Lama (jika ada)
+            if (pangkatLama) {
+                const roleID = extractRoleID(pangkatLama);
+                if (roleID) await member.roles.remove(roleID).catch(() => null);
+            }
 
-        // ===== PROSES PTDH (Pensiun Tidak Dengan Hormat) =====
-        if (status === 'PTDH') {
-            // 1. Cabut semua role polisi
+            // 2. Cabut Semua Role Kelompok (Termasuk Excellence Police)
             for (const groupID of allGroupIDs) {
                 if (member.roles.cache.has(groupID)) {
-                    await member.roles.remove(groupID).catch(() => null);
+                    await member.roles.remove(groupID).catch(e => 
+                        console.error(`Gagal cabut group ${groupID}: ${e.message}`)
+                    );
                 }
             }
 
-            // 2. Cabut pangkat jika ada
-            if (prevRankID && member.roles.cache.has(prevRankID)) {
-                await member.roles.remove(prevRankID).catch(() => null);
+            // 3. Cabut Satuan Lama (jika ada)
+            if (satuanLama) {
+                const roleID = extractRoleID(satuanLama);
+                if (roleID) await member.roles.remove(roleID).catch(() => null);
             }
 
-            // 3. Cabut divisi jika ada
-            if (prevDivID && member.roles.cache.has(prevDivID)) {
-                await member.roles.remove(prevDivID).catch(() => null);
-            }
-
-            // 4. Cabut jabatan jika ada
-            if (prevPositionID && member.roles.cache.has(prevPositionID)) {
-                await member.roles.remove(prevPositionID).catch(() => null);
-            }
-
-            // 5. Tetap role Warga, ubah nickname
-            if (!member.roles.cache.has(WARGA_ROLE_ID)) {
-                await member.roles.add(WARGA_ROLE_ID).catch(console.error);
-            }
-
+            // 4. Tambah Warga Excellence & Update Nickname
+            await member.roles.add(WARGA_ROLE_ID).catch(console.error);
+            
             let cleanName = member.displayName;
             if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
-            const newNickname = `PTDH | ${cleanName}`.substring(0, 32);
+            const newNickname = `Civil | ${cleanName}`.substring(0, 32);
             await member.setNickname(newNickname).catch(() => null);
 
-            console.log(`✅ PTDH diproses: ${member.user.tag} → Nickname: ${newNickname}`);
+            console.log(`[${status}] Berhasil memproses ${member.user.tag}`);
         }
-        // ===== PROSES RESIGN (Keluar/Berhenti) =====
-        else if (status === 'RESIGN') {
-            // 1. Cabut semua role polisi
-            for (const groupID of allGroupIDs) {
-                if (member.roles.cache.has(groupID)) {
-                    await member.roles.remove(groupID).catch(() => null);
-                }
-            }
-
-            // 2. Cabut pangkat jika ada
-            if (prevRankID && member.roles.cache.has(prevRankID)) {
-                await member.roles.remove(prevRankID).catch(() => null);
-            }
-
-            // 3. Cabut divisi jika ada
-            if (prevDivID && member.roles.cache.has(prevDivID)) {
-                await member.roles.remove(prevDivID).catch(() => null);
-            }
-
-            // 4. Cabut jabatan jika ada
-            if (prevPositionID && member.roles.cache.has(prevPositionID)) {
-                await member.roles.remove(prevPositionID).catch(() => null);
-            }
-
-            // 5. Tetap role Warga, ubah nickname
-            if (!member.roles.cache.has(WARGA_ROLE_ID)) {
-                await member.roles.add(WARGA_ROLE_ID).catch(console.error);
-            }
-
-            let cleanName = member.displayName;
-            if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
-            const newNickname = `EX | ${cleanName}`.substring(0, 32);
-            await member.setNickname(newNickname).catch(() => null);
-
-            console.log(`✅ RESIGN diproses: ${member.user.tag} → Nickname: ${newNickname}`);
-        }
-        // ===== PROSES NORMAL (PROMOSI/DEMOSI/ROTASI) =====
+        // --- PROSES PROMOSI/DEMOSI/ROTASI NORMAL ---
         else {
-            // Update Pangkat
-            if (prevRankID && member.roles.cache.has(prevRankID)) {
-                await member.roles.remove(prevRankID).catch(() => null);
-                console.log(`  ❌ Pangkat lama dihapus: ${prevRankID}`);
-            } else if (prevRankID) {
-                console.log(`  ⚠️ Pangkat lama tidak ditemukan di member: ${prevRankID}`);
+            // 1. Cabut Pangkat Lama (jika ada)
+            if (pangkatLama) {
+                const roleID = extractRoleID(pangkatLama);
+                if (roleID) await member.roles.remove(roleID).catch(() => null);
             }
 
-            if (newRankID) {
-                await member.roles.add(newRankID).catch(console.error);
-                console.log(`  ✅ Pangkat baru ditambah: ${newRankID}`);
+            // 2. Tambah Pangkat Baru (jika ada)
+            if (pangkatBaru) {
+                const roleID = extractRoleID(pangkatBaru);
+                if (roleID) await member.roles.add(roleID).catch(console.error);
             }
 
-            // Update Divisi DIPERBAIKI
-            if (prevDivID && member.roles.cache.has(prevDivID)) {
-                await member.roles.remove(prevDivID).catch(() => null);
-                console.log(`  ❌ Divisi lama dihapus: ${prevDivID}`);
-            } else if (prevDivID) {
-                console.log(`  ⚠️ Divisi lama tidak ditemukan di member: ${prevDivID}`);
+            // 3. Cabut Satuan Lama & Tambah Satuan Baru (untuk Rotasi)
+            if (satuanLama) {
+                const roleID = extractRoleID(satuanLama);
+                if (roleID) await member.roles.remove(roleID).catch(() => null);
+            }
+            
+            if (satuanBaru) {
+                const roleID = extractRoleID(satuanBaru);
+                if (roleID) await member.roles.add(roleID).catch(console.error);
             }
 
-            if (newDivID) {
-                await member.roles.add(newDivID).catch(console.error);
-                console.log(`  ✅ Divisi baru ditambah: ${newDivID}`);
-            }
-
-            // Update Jabatan
-            if (prevPositionID && member.roles.cache.has(prevPositionID)) {
-                await member.roles.remove(prevPositionID).catch(() => null);
-                console.log(`  ❌ Jabatan lama dihapus: ${prevPositionID}`);
-            } else if (prevPositionID) {
-                console.log(`  ⚠️ Jabatan lama tidak ditemukan di member: ${prevPositionID}`);
-            }
-
-            if (newPositionID) {
-                await member.roles.add(newPositionID).catch(console.error);
-                console.log(`  ✅ Jabatan baru ditambah: ${newPositionID}`);
-            }
-
-            // Sinkronisasi Group Role
-            if (newRankID && groupRoles[newRankID]) {
-                const targetGroupID = groupRoles[newRankID];
-                for (const groupID of allGroupIDs) {
-                    if (member.roles.cache.has(groupID) && groupID !== targetGroupID && groupID !== POLICE_MAIN_ROLE_ID) {
-                        await member.roles.remove(groupID).catch(() => null);
+            // 4. Sinkronisasi Role Kelompok (berdasarkan pangkat baru)
+            if (pangkatBaru) {
+                const newRankID = extractRoleID(pangkatBaru);
+                if (newRankID && groupRoles[newRankID]) {
+                    const targetGroupID = groupRoles[newRankID];
+                    
+                    // Cabut group lama (kecuali Excellence Police)
+                    for (const groupID of allGroupIDs) {
+                        if (member.roles.cache.has(groupID) && groupID !== targetGroupID && groupID !== POLICE_MAIN_ROLE_ID) {
+                            await member.roles.remove(groupID).catch(() => null);
+                        }
                     }
+                    
+                    // Tambah group baru
+                    await member.roles.add(targetGroupID).catch(console.error);
                 }
-                await member.roles.add(targetGroupID).catch(console.error);
-                console.log(`  🔄 Group role diperbarui: ${targetGroupID}`);
             }
 
-            // Update Prefix Nickname DIPERBAIKI - SELALU JALANKAN
-            if (newRankID) {
-                console.log(`  🔍 Mencari prefix untuk rank ID: ${newRankID}`);
-                const prefix = getRankPrefix(newRankID, message.guild);
-                
-                let cleanName = member.displayName;
-                if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
-                
-                const newNickname = `${prefix} | ${cleanName}`.substring(0, 32);
-                await member.setNickname(newNickname).catch((err) => {
-                    console.error(`  ❌ Gagal update nickname: ${err.message}`);
-                });
-                console.log(`  👤 Nickname diperbarui: ${newNickname}`);
-            } else {
-                console.log(`  ⚠️ Tidak ada pangkat baru, nickname tidak diupdate`);
+            // 5. Update Prefix Nickname (berdasarkan pangkat baru)
+            if (pangkatBaru) {
+                const newRankID = extractRoleID(pangkatBaru);
+                if (newRankID && rankPrefixes[newRankID]) {
+                    const prefix = rankPrefixes[newRankID];
+                    let cleanName = member.displayName;
+                    if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
+                    const newNickname = `${prefix} | ${cleanName}`.substring(0, 32);
+                    await member.setNickname(newNickname).catch(() => null);
+                }
             }
 
-            console.log(`✅ Promosi/Demosi/Rotasi diproses: ${member.user.tag}`);
+            console.log(`[PROMOSI/DEMOSI/ROTASI] Berhasil memproses ${member.user.tag}`);
         }
+
+        await message.react('✅').catch(() => null);
     } catch (error) {
-        console.error(`❌ Gagal memproses ID ${userID}:`, error);
+        console.error(`Gagal memproses ID ${userID}:`, error);
+        await message.react('❌').catch(() => null);
     }
-}
+});
 
 async function sendOfflineNotif() {
     const notifChannel = client.channels.cache.get(NOTIF_CHANNEL_ID);
