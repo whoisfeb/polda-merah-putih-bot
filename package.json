@@ -1,0 +1,16 @@
+{
+  "name": "sapd-attendance",
+  "version": "1.0.0",
+  "description": "Sistem Absensi SAPD",
+  "main": "bot-sapd.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5",
+    "axios": "^1.6.0"
+  },
+  "scripts": {
+    "start": "node bot-sapd.js & node sapd-discord.js",
+    "build": "echo 'No build step required'"
+  }
+}
