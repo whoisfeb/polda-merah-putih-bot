@@ -20,8 +20,8 @@ const NOTIF_CHANNEL_ID = '1497462798094045264';
 // ==========================================
 // --- ROLE IDENTITAS UTAMA (WAJIB BENAR) ---
 // ==========================================
-const WARGA_ROLE_ID = '1496865881651810519';       // Role: Warga Excellence
-const POLICE_MAIN_ROLE_ID = '1496865881672912899'; // Role: Excellence Police
+const WARGA_ROLE_ID = '1496865881651810519';
+const POLICE_MAIN_ROLE_ID = '1496865881672912899';
 
 // ==========================================
 // --- 1. MAPPING PREFIX NICKNAME ---
@@ -55,347 +55,399 @@ const rankPrefixes = {
 // --- 2. MAPPING ROLE KELOMPOK (GROUPS) ---
 // ==========================================
 const groupRoles = {
-    // --- Golongan: Perwira Tinggi (PATI) ---
-    '1496865881727176763': '1496865881739890800', // Jenderal Polisi
-    '1496865881727176762': '1496865881739890800', // Komjen Pol
-    '1496865881727176761': '1496865881739890800', // Irjen Pol
-    '1496865881727176760': '1496865881739890800', // Brigjen Pol
 
-    // --- Golongan: Perwira Menengah (PAMEN) ---
-    '1496865881706201280': '1496865881706201281', // Kombes Pol
-    '1496865881706201279': '1496865881706201281', // AKBP
-    '1496865881706201278': '1496865881706201281', // Kompol
+    '1496865881727176763': '1496865881739890800',
+    '1496865881727176762': '1496865881739890800',
+    '1496865881727176761': '1496865881739890800',
+    '1496865881727176760': '1496865881739890800',
 
-    // --- Golongan: Perwira Pertama (PAMA) ---
-    '1496865881698074694': '1496865881698074695', // AKP
-    '1496865881698074693': '1496865881698074695', // IPTU
-    '1496865881698074692': '1496865881698074695', // IPDA
+    '1496865881706201280': '1496865881706201281',
+    '1496865881706201279': '1496865881706201281',
+    '1496865881706201278': '1496865881706201281',
 
-    // --- Golongan: Bintara Polisi ---
-    '1496865881698074690': '1496865881698074691', // AIPTU
-    '1496865881698074689': '1496865881698074691', // AIPDA
-    '1496865881698074688': '1496865881698074691', // BRIPKA
-    '1496865881698074687': '1496865881698074691', // BRIGPOL
-    '1496865881698074686': '1496865881698074691', // BRIPTU
-    '1496865881681166466': '1496865881698074691', // BRIPDA
+    '1496865881698074694': '1496865881698074695',
+    '1496865881698074693': '1496865881698074695',
+    '1496865881698074692': '1496865881698074695',
 
-    // --- Golongan: Tamtama ---
-    '1496865881681166464': '1496865881681166465', // Ajun Brigadir
-    '1496865881681166463': '1496865881681166465', // Ajun Brigadir Satu
-    '1496865881681166462': '1496865881681166465', // Ajun Brigadir Dua
-    '1496865881681166461': '1496865881681166465', // Bhayangkara Kepala
-    '1496865881681166460': '1496865881681166465', // Bhayangkara Satu
-    '1496865881681166459': '1496865881681166465'  // Bhayangkara Dua
+    '1496865881698074690': '1496865881698074691',
+    '1496865881698074689': '1496865881698074691',
+    '1496865881698074688': '1496865881698074691',
+    '1496865881698074687': '1496865881698074691',
+    '1496865881698074686': '1496865881698074691',
+    '1496865881681166466': '1496865881698074691',
+
+    '1496865881681166464': '1496865881681166465',
+    '1496865881681166463': '1496865881681166465',
+    '1496865881681166462': '1496865881681166465',
+    '1496865881681166461': '1496865881681166465',
+    '1496865881681166460': '1496865881681166465',
+    '1496865881681166459': '1496865881681166465'
 };
+
+// ==========================================
+// --- ROLE GOLOGAN SAJA (UNTUK SINKRONISASI)
+// ==========================================
+const groupRoleIDs = [
+    '1496865881739890800',
+    '1496865881706201281',
+    '1496865881698074695',
+    '1496865881698074691',
+    '1496865881681166465'
+];
 
 // ==========================================
 // --- 3. DAFTAR MEMBERSIHKAN ROLE POLISI ---
 // ==========================================
 const allGroupIDs = [
-    POLICE_MAIN_ROLE_ID,    // Role Utama (SAPD)
-    '1496865881739890800', // Golongan: Perwira Tinggi
-    '1496865881706201281', // Golongan: Perwira Menengah
-    '1496865881698074695', // Golongan: Perwira Pertama
-    '1496865881698074691', // Golongan: Bintara Polisi
-    '1496865881681166465', // Golongan: Tamtama
-    '1496865881727176759', // Divisi: Propam (IAD)
-    '1496865881727176758', // Divisi: Keuangan Polda
-    '1496865881672912905', // Divisi: Biro SDM (HRB)
-    '1496865881672912904', // Divisi: Brimob
-    '1496865881672912903', // Divisi: Sabhara (Metropolitan)
-    '1496865881672912902', // Divisi: Lantas (Highway Patrol)
-    '1496865881672912901'  // Divisi: Reskrim (Detective)
+    POLICE_MAIN_ROLE_ID,
+    '1496865881739890800',
+    '1496865881706201281',
+    '1496865881698074695',
+    '1496865881698074691',
+    '1496865881681166465',
+    '1496865881727176759',
+    '1496865881727176758',
+    '1496865881672912905',
+    '1496865881672912904',
+    '1496865881672912903',
+    '1496865881672912902',
+    '1496865881672912901'
 ];
 
 // ==========================================
 // --- HELPER FUNCTIONS ---
 // ==========================================
 
-/**
- * Extract user mention from text and return user ID
- * Format: <@123456789> or <@!123456789>
- */
 function extractUserID(text) {
+    if (!text) return null;
     const match = text.match(/<@!?(\d+)>/);
     return match ? match[1] : null;
 }
 
-/**
- * Extract role mention from text and return role ID
- * Format: <@&123456789>
- * ⭐ DIPERBAIKI: Menghandle multiple role mentions
- */
 function extractRoleIDs(text) {
     if (!text) return [];
-    const matches = text.match(/<@&(\d+)>/g);
-    if (!matches) return [];
-    return matches.map(mention => mention.replace(/[<@&>]/g, ''));
+
+    const roleIDArray = [];
+    const regex = /<@&(\d+)>/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        roleIDArray.push(match[1]);
+    }
+
+    return roleIDArray;
 }
 
-/**
- * Extract single role ID (untuk backward compatibility)
- */
 function extractRoleID(text) {
     const ids = extractRoleIDs(text);
     return ids.length > 0 ? ids[0] : null;
 }
 
-/**
- * Check if a value is considered "empty" (-, N/A, atau similar)
- */
 function isEmpty(value) {
     if (!value) return true;
     const cleaned = value.trim().toLowerCase();
     return cleaned === '-' || cleaned === 'n/a' || cleaned === 'na' || cleaned === '';
 }
 
-/**
- * Parse the official promotion/demotion letter format
- * Extracts data from "Pihak Terkait" section
- * ⭐ DIPERBAIKI: Better regex patterns untuk multi-line fields
- */
+// ==========================================
+// --- PARSE PROMOTION LETTER ---
+// ==========================================
 function parsePromotionLetter(messageContent) {
-    try {
-        // Find "Pihak Terkait" section
-        const pihakTerkaitStart = messageContent.indexOf('Pihak Terkait');
-        if (pihakTerkaitStart === -1) {
-            console.log('Section "Pihak Terkait" not found');
-            return null;
-        }
 
-        // Extract from "Pihak Terkait" until next major section or end
-        const afterPihakTerkait = messageContent.substring(pihakTerkaitStart);
-        const nextSectionIndex = afterPihakTerkait.indexOf('Bersama ini saya membuat');
-        const pihakTerkaitContent = nextSectionIndex !== -1 
-            ? afterPihakTerkait.substring(0, nextSectionIndex) 
-            : afterPihakTerkait;
+    const pihakTerkaitStart = messageContent.indexOf('Pihak Terkait');
+    if (pihakTerkaitStart === -1) return null;
 
-        // ⭐ PERBAIKAN: Improved regex patterns untuk handle whitespace lebih baik
-        const namaMatch = pihakTerkaitContent.match(/a\.\s*Nama\s*:\s*(.+?)(?=\nb\.|$)/is);
-        const pangkatLamaMatch = pihakTerkaitContent.match(/b\.\s*Pangkat\s+Lama\s*:\s*(.+?)(?=\nc\.|$)/is);
-        const pangkatBaruMatch = pihakTerkaitContent.match(/c\.\s*Pangkat\s+Baru\s*:\s*(.+?)(?=\nd\.|$)/is);
-        const jabatanLamaMatch = pihakTerkaitContent.match(/d\.\s*Jabatan\s+Lama\s*:\s*(.+?)(?=\ne\.|$)/is);
-        const jabatanBaruMatch = pihakTerkaitContent.match(/e\.\s*Jabatan\s+Baru\s*:\s*(.+?)(?=\nf\.|$)/is);
-        const satuanLamaMatch = pihakTerkaitContent.match(/f\.\s*Satuan\s+Lama\s*:\s*(.+?)(?=\ng\.|$)/is);
-        const satuanBaruMatch = pihakTerkaitContent.match(/g\.\s*Satuan\s+Baru\s*:\s*(.+?)(?=\nh\.|$)/is);
-        const statusMatch = pihakTerkaitContent.match(/h\.\s*Status\s*:\s*(.+?)(?=\n|$)/is);
+    const after = messageContent.substring(pihakTerkaitStart);
+    const next = after.indexOf('Bersama ini saya membuat');
 
-        // Extract user ID from name field (if contains mention)
-        const nama = namaMatch ? namaMatch[1].trim() : null;
-        const userID = nama ? extractUserID(nama) : null;
+    const content = next !== -1 ? after.substring(0, next) : after;
 
-        if (!userID) {
-            console.log('User mention not found in Nama field');
-            return null;
-        }
+    const namaMatch = content.match(/a\.\s*Nama\s*:\s*(.+?)(?=\nb\.|$)/is);
+    const pangkatLamaMatch = content.match(/b\.\s*Pangkat\s+Lama\s*:\s*(.+?)(?=\nc\.|$)/is);
+    const pangkatBaruMatch = content.match(/c\.\s*Pangkat\s+Baru\s*:\s*(.+?)(?=\nd\.|$)/is);
+    const jabatanLamaMatch = content.match(/d\.\s*Jabatan\s+Lama\s*:\s*(.+?)(?=\ne\.|$)/is);
+    const jabatanBaruMatch = content.match(/e\.\s*Jabatan\s+Baru\s*:\s*(.+?)(?=\nf\.|$)/is);
+    const satuanLamaMatch = content.match(/f\.\s*Satuan\s+Lama\s*:\s*(.+?)(?=\ng\.|$)/is);
+    const satuanBaruMatch = content.match(/g\.\s*Satuan\s+Baru\s*:\s*(.+?)(?=\nh\.|$)/is);
+    const statusMatch = content.match(/h\.\s*Status\s*:\s*(.+)/i);
 
-        const pangkatLama = pangkatLamaMatch ? pangkatLamaMatch[1].trim() : null;
-        const pangkatBaru = pangkatBaruMatch ? pangkatBaruMatch[1].trim() : null;
-        const jabatanLama = jabatanLamaMatch ? jabatanLamaMatch[1].trim() : null;
-        const jabatanBaru = jabatanBaruMatch ? jabatanBaruMatch[1].trim() : null;
-        const satuanLama = satuanLamaMatch ? satuanLamaMatch[1].trim() : null;
-        const satuanBaru = satuanBaruMatch ? satuanBaruMatch[1].trim() : null;
-        const status = statusMatch ? statusMatch[1].trim().toUpperCase() : null;
+    const nama = namaMatch ? namaMatch[1].trim() : null;
+    const userID = nama ? extractUserID(nama) : null;
 
-        return {
-            userID,
-            pangkatLama: isEmpty(pangkatLama) ? null : pangkatLama,
-            pangkatBaru: isEmpty(pangkatBaru) ? null : pangkatBaru,
-            jabatanLama: isEmpty(jabatanLama) ? null : jabatanLama,
-            jabatanBaru: isEmpty(jabatanBaru) ? null : jabatanBaru,
-            satuanLama: isEmpty(satuanLama) ? null : satuanLama,
-            satuanBaru: isEmpty(satuanBaru) ? null : satuanBaru,
-            status: isEmpty(status) ? null : status,
-        };
-    } catch (error) {
-        console.error('Error parsing promotion letter:', error);
-        return null;
-    }
+    if (!userID) return null;
+
+    return {
+        userID,
+        pangkatLama: isEmpty(pangkatLamaMatch?.[1]) ? null : pangkatLamaMatch[1].trim(),
+        pangkatBaru: isEmpty(pangkatBaruMatch?.[1]) ? null : pangkatBaruMatch[1].trim(),
+        jabatanLama: isEmpty(jabatanLamaMatch?.[1]) ? null : jabatanLamaMatch[1].trim(),
+        jabatanBaru: isEmpty(jabatanBaruMatch?.[1]) ? null : jabatanBaruMatch[1].trim(),
+        satuanLama: isEmpty(satuanLamaMatch?.[1]) ? null : satuanLamaMatch[1].trim(),
+        satuanBaru: isEmpty(satuanBaruMatch?.[1]) ? null : satuanBaruMatch[1].trim(),
+        status: isEmpty(statusMatch?.[1]) ? null : statusMatch[1].trim().toUpperCase()
+    };
 }
 
-client.once('ready', () => {
-    console.log(`Bot login sebagai ${client.user.tag}`);
+// ==========================================
+// --- BOT READY ---
+// ==========================================
+client.once('clientReady', async () => {
+
+    console.log(`✅ Bot login sebagai ${client.user.tag}`);
+
     const notifChannel = client.channels.cache.get(NOTIF_CHANNEL_ID);
-    if (notifChannel) {
-        notifChannel.send(`✅ **Sistem SAPD Online** | ${new Date().toLocaleString('id-ID')} | Status: Menunggu Promosi/Demotion... \n\n*Bot ini akan otomatis memproses promosi/demotion berdasarkan format surat resmi yang ditentukan di channel promosi.*\n*Pastikan format surat benar agar bot dapat memproses dengan lancar.*`)
-        .catch(console.error);
-    }
+    if (!notifChannel) return;
+
+    // PESAN 1
+    await notifChannel.send(`✅ **Sistem SAPD Online** | ${new Date().toLocaleString('id-ID')}
+Status: **Menunggu Promosi/Demotion...**
+
+*Bot ini akan otomatis memproses promosi/demotion berdasarkan format surat resmi yang ditentukan di channel promosi.*
+*Pastikan format surat benar agar bot dapat memproses dengan lancar.*
+*Ketika tidak ada aktivitas yang sesuai format di channel <#${PROMOTION_CHANNEL_ID}> maka bot akan standby.*
+
+@everyone
+
+━━━━━━━━━━━━━━━━━━━━
+📑 **Tutorial Mengisi Format Promotion**
+━━━━━━━━━━━━━━━━━━━━
+
+Gunakan format berikut:
+
+**SURAT PROMOSI, DEMOSI, ROTASI**
+
+27/01/2026 19:05PM
+Klasifikasi: Rahasia
+Lampiran Satu Lembar
+Perihal : Promosi/Demosi/Rotasi
+
+Dengan Hormat,
+
+Yang bertanda tangan dibawah ini :
+a. Nama     :
+b. Pangkat  :
+c. Jabatan  :
+d. Satuan :
+
+Pihak Terkait
+Biro Sumber Daya Manusia
+a. Nama         :
+b. Pangkat Lama :
+c. Pangkat Baru :
+d. Jabatan Lama :
+e. Jabatan Baru :
+f. Satuan Lama :
+g. Satuan Baru :
+h. Status :
+Bersama ini saya membuat surat secara
+resmi dan sah, sesuai Peraturan Kepolisian Daerah, dengan pertimbangan sebagai berikut :
+
+<@&1496865881672912899>
+`);
+
+    // PESAN 2
+    await notifChannel.send(`━━━━━━━━━━━━━━━━━━━━
+📌 **Contoh Pengisian**
+━━━━━━━━━━━━━━━━━━━━
+
+**SURAT PROMOSI, DEMOSI, ROTASI**
+
+27/01/2026 19:05PM
+Klasifikasi: Rahasia
+Lampiran Satu Lembar
+Perihal : Promosi/Demosi/Rotasi (pilih salah satunya)
+
+Dengan Hormat,
+
+Yang bertanda tangan dibawah ini :
+a. Nama     : isi nama anda disini
+b. Pangkat  : isi pangkat anda
+c. Jabatan  : isi jabatan anda
+d. Satuan : isi satuan atau divisi anda
+
+Pihak Terkait
+Biro Sumber Daya Manusia
+a. Nama         : tag user yang bersangkutan
+b. Pangkat Lama : tag pangkat lama (jika ada, jika tidak ada isi dengan -)
+c. Pangkat Baru : tag pangkat baru (jika ada, jika tidak ada isi dengan -)
+d. Jabatan Lama : tag jabatan lama (jika ada, jika tidak ada isi dengan -)
+e. Jabatan Baru : tag jabatan baru (jika ada, jika tidak ada isi dengan -)
+f. Satuan Lama : tag satuan lama (jika ada, jika tidak ada isi dengan -)
+g. Satuan Baru : tag satuan baru (jika ada, jika tidak ada isi dengan -)
+h. Status : tag status (PROMOSI / DEMOSI / ROTASI / RESIGN / PTDH)
+
+Bersama ini saya membuat surat secara
+resmi dan sah, sesuai Peraturan Kepolisian Daerah, dengan pertimbangan sebagai berikut :
+
+<@&1496865881672912899>
+`);
+
+    // PESAN 3
+    await notifChannel.send(`contoh pengisian PTDH ATAU RESIGN
+
+**SURAT PROMOSI, DEMOSI, ROTASI**
+
+27/01/2026 19:05PM
+Klasifikasi: Rahasia
+Lampiran Satu Lembar
+Perihal : Promosi/Demosi/Rotasi (pilih salah satunya)
+
+Dengan Hormat,
+
+Yang bertanda tangan dibawah ini :
+a. Nama     : isi nama anda disini
+b. Pangkat  : isi pangkat anda
+c. Jabatan  : isi jabatan anda
+d. Satuan : isi satuan atau divisi anda
+
+Pihak Terkait
+Biro Sumber Daya Manusia
+a. Nama         : tag user yang bersangkutan
+b. Pangkat Lama : tag pangkat lama
+c. Pangkat Baru : isi dengan tanda -
+d. Jabatan Lama : tag jabatan lama
+e. Jabatan Baru : isi dengan tanda -
+f. Satuan Lama : tag satuan lama
+g. Satuan Baru : isi dengan tanda -
+h. Status : PTDH atau RESIGN (pilih salah satunya)
+
+Bersama ini saya membuat surat secara
+resmi dan sah, sesuai Peraturan Kepolisian Daerah, dengan pertimbangan sebagai berikut :
+
+<@&1496865881672912899>
+
+⚠️ **Catatan:**
+• Gunakan **mention user** untuk nama
+• Gunakan **mention role** untuk pangkat/jabatan/satuan
+• Jika tidak ada perubahan isi dengan **-**
+
+━━━━━━━━━━━━━━━━━━━━
+🤖 **Sistem akan otomatis:**
+• Menghapus pangkat lama
+• Memberikan pangkat baru
+• Mengubah divisi/satuan
+• Menyesuaikan golongan
+• Mengubah nickname sesuai pangkat
+━━━━━━━━━━━━━━━━━━━━
+`);
+
 });
 
+// ==========================================
+// --- PROMOTION SYSTEM ---
+// ==========================================
 client.on('messageCreate', async (message) => {
-    if (message.author.bot || message.channel.id !== PROMOTION_CHANNEL_ID) return;
 
-    // Check if message contains the official letter format
-    if (!message.content.includes('Pihak Terkait') || !message.content.includes('Bersama ini saya membuat')) {
+    if (message.author.bot) return;
+    if (message.channel.id !== PROMOTION_CHANNEL_ID) return;
+
+    if (!message.content.includes('Pihak Terkait')) return;
+
+    const data = parsePromotionLetter(message.content);
+
+    if (!data) {
+        await message.react('❌');
         return;
     }
 
-    // Parse the promotion letter
-    const letterData = parsePromotionLetter(message.content);
-    
-    if (!letterData) {
-        console.log('Failed to parse promotion letter');
-        await message.react('❌').catch(() => null);
-        return;
-    }
-
-    const { userID, pangkatLama, pangkatBaru, jabatanLama, jabatanBaru, satuanLama, satuanBaru, status } = letterData;
-
-    console.log('📋 Parsed Data:', { userID, pangkatLama, pangkatBaru, satuanLama, satuanBaru, status });
+    const { userID, pangkatLama, pangkatBaru, satuanLama, satuanBaru, status } = data;
 
     try {
+
         const member = await message.guild.members.fetch(userID);
         const botMember = message.guild.members.me;
 
-        // PROTEKSI HIERARKI: Bot tidak bisa ubah member yang rolenya lebih tinggi dari bot
         if (member.roles.highest.position >= botMember.roles.highest.position) {
-            console.warn(`[SKIP] Role ${member.user.tag} terlalu tinggi untuk Bot.`);
-            await message.react('⚠️').catch(() => null);
+            await message.react('⚠️');
             return;
         }
 
-        // --- PROSES BERDASARKAN STATUS ---
-        // Status PTDH atau RESIGN: Hapus semua role kepolisian
-        if (status === 'PTDH' || status === 'RESIGN') {
-            console.log(`[${status}] Memproses ${member.user.tag}...`);
+        // REMOVE OLD RANK
+        if (pangkatLama) {
 
-            // 1. Cabut Pangkat Lama (jika ada)
-            if (pangkatLama) {
-                const roleID = extractRoleID(pangkatLama);
-                if (roleID) {
-                    await member.roles.remove(roleID).catch(() => null);
-                    console.log(`  ✓ Pangkat lama dihapus: ${roleID}`);
-                }
-            }
+            const roleID = extractRoleID(pangkatLama);
 
-            // 2. Cabut Semua Role Kelompok (Termasuk Excellence Police)
-            for (const groupID of allGroupIDs) {
-                if (member.roles.cache.has(groupID)) {
-                    await member.roles.remove(groupID).catch(e => 
-                        console.error(`Gagal cabut group ${groupID}: ${e.message}`)
-                    );
-                }
-            }
-            console.log(`  ✓ Semua role kepolisian dihapus`);
+            if (roleID) await member.roles.remove(roleID).catch(() => null);
 
-            // 3. Cabut Satuan Lama (jika ada)
-            if (satuanLama) {
-                const roleIDs = extractRoleIDs(satuanLama);
-                for (const roleID of roleIDs) {
-                    await member.roles.remove(roleID).catch(() => null);
-                }
-                console.log(`  ✓ Satuan lama dihapus`);
-            }
-
-            // 4. Tambah Warga Excellence & Update Nickname
-            await member.roles.add(WARGA_ROLE_ID).catch(console.error);
-            console.log(`  ✓ Role Warga Excellence ditambahkan`);
-            
-            let cleanName = member.displayName;
-            if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
-            const newNickname = `Civil | ${cleanName}`.substring(0, 32);
-            await member.setNickname(newNickname).catch(() => null);
-            console.log(`  ✓ Nickname diubah: ${newNickname}`);
-        }
-        // --- PROSES PROMOSI/DEMOSI/ROTASI NORMAL ---
-        else {
-            console.log(`[PROMOSI/DEMOSI/ROTASI] Memproses ${member.user.tag}...`);
-
-            // 1. Cabut Pangkat Lama (jika ada)
-            if (pangkatLama) {
-                const roleID = extractRoleID(pangkatLama);
-                if (roleID) {
-                    await member.roles.remove(roleID).catch(() => null);
-                    console.log(`  ✓ Pangkat lama dihapus: ${roleID}`);
-                }
-            }
-
-            // 2. Tambah Pangkat Baru (jika ada)
-            let newRankID = null;
-            if (pangkatBaru) {
-                newRankID = extractRoleID(pangkatBaru);
-                if (newRankID) {
-                    await member.roles.add(newRankID).catch(console.error);
-                    console.log(`  ✓ Pangkat baru ditambahkan: ${newRankID}`);
-                }
-            }
-
-            // 3. Cabut Satuan Lama & Tambah Satuan Baru (untuk Rotasi)
-            if (satuanLama) {
-                const roleIDs = extractRoleIDs(satuanLama);
-                for (const roleID of roleIDs) {
-                    await member.roles.remove(roleID).catch(() => null);
-                }
-                console.log(`  ✓ Satuan lama dihapus`);
-            }
-            
-            if (satuanBaru) {
-                const roleIDs = extractRoleIDs(satuanBaru);
-                for (const roleID of roleIDs) {
-                    await member.roles.add(roleID).catch(console.error);
-                    console.log(`  ✓ Satuan baru ditambahkan: ${roleID}`);
-                }
-            }
-
-            // 4. Sinkronisasi Role Kelompok (berdasarkan pangkat baru)
-            if (newRankID && groupRoles[newRankID]) {
-                const targetGroupID = groupRoles[newRankID];
-                
-                // Cabut group lama (kecuali Excellence Police)
-                for (const groupID of allGroupIDs) {
-                    if (member.roles.cache.has(groupID) && groupID !== targetGroupID && groupID !== POLICE_MAIN_ROLE_ID) {
-                        await member.roles.remove(groupID).catch(() => null);
-                    }
-                }
-                
-                // Tambah group baru
-                await member.roles.add(targetGroupID).catch(console.error);
-                console.log(`  ✓ Role golongan disinkronisasi: ${targetGroupID}`);
-            }
-
-            // 5. Pastikan Excellence Police role tetap ada
-            if (newRankID) {
-                await member.roles.add(POLICE_MAIN_ROLE_ID).catch(console.error);
-            }
-
-            // 6. Update Prefix Nickname (berdasarkan pangkat baru)
-            if (newRankID && rankPrefixes[newRankID]) {
-                const prefix = rankPrefixes[newRankID];
-                let cleanName = member.displayName;
-                if (cleanName.includes('|')) cleanName = cleanName.split('|')[1].trim();
-                const newNickname = `${prefix} | ${cleanName}`.substring(0, 32);
-                await member.setNickname(newNickname).catch(() => null);
-                console.log(`  ✓ Nickname diubah: ${newNickname}`);
-            }
         }
 
-        await message.react('✅').catch(() => null);
-        console.log(`✅ Selesai: ${member.user.tag}\n`);
-    } catch (error) {
-        console.error(`❌ Gagal memproses ID ${userID}:`, error);
-        await message.react('❌').catch(() => null);
+        // ADD NEW RANK
+        let newRankID = null;
+
+        if (pangkatBaru) {
+
+            newRankID = extractRoleID(pangkatBaru);
+
+            if (newRankID) await member.roles.add(newRankID);
+
+        }
+
+        // REMOVE OLD DIVISION
+        if (satuanLama) {
+
+            const roles = extractRoleIDs(satuanLama);
+
+            for (const r of roles) await member.roles.remove(r).catch(()=>null);
+
+        }
+
+        // ADD NEW DIVISION
+        if (satuanBaru) {
+
+            const roles = extractRoleIDs(satuanBaru);
+
+            for (const r of roles) await member.roles.add(r).catch(()=>null);
+
+        }
+
+        // ======================================
+        // SYNC GROUP ROLE (FIXED)
+        // ======================================
+        if (newRankID && groupRoles[newRankID]) {
+
+            const targetGroupID = groupRoles[newRankID];
+
+            for (const groupID of groupRoleIDs) {
+
+                if (member.roles.cache.has(groupID) && groupID !== targetGroupID) {
+
+                    await member.roles.remove(groupID).catch(()=>null);
+
+                }
+
+            }
+
+            await member.roles.add(targetGroupID);
+
+        }
+
+        if (newRankID) await member.roles.add(POLICE_MAIN_ROLE_ID);
+
+        // UPDATE NICKNAME
+        if (newRankID && rankPrefixes[newRankID]) {
+
+            const prefix = rankPrefixes[newRankID];
+
+            let clean = member.displayName;
+
+            if (clean.includes('|')) clean = clean.split('|')[1].trim();
+
+            await member.setNickname(`${prefix} | ${clean}`.substring(0,32));
+
+        }
+
+        await message.react('✅');
+
+    } catch (err) {
+
+        console.error(err);
+        await message.react('❌');
+
     }
+
 });
 
-async function sendOfflineNotif() {
-    const notifChannel = client.channels.cache.get(NOTIF_CHANNEL_ID);
-    if (notifChannel) {
-        try {
-            await notifChannel.send(`⚠️ **Sistem SAPD Offline**\n\n*Silahkan tunggu sistem SAPD online kembali*\n\n@everyone | ${new Date().toLocaleString('id-ID')} | Status: Berhenti/Timeout. \n*Bot akan aktif kembali otomatis sesuai jadwal atau jika dijalankan manual.*`);
-        } catch (err) {
-            console.error("Gagal mengirim pesan offline:", err);
-        }
-    }
-}
-
-process.on('SIGTERM', async () => {
-    await sendOfflineNotif();
-    process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-    await sendOfflineNotif();
-    process.exit(0);
-});
-
+// ==========================================
+// --- BOT LOGIN ---
+// ==========================================
 client.login(TOKEN);
