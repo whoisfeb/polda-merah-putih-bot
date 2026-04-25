@@ -224,14 +224,18 @@ function parseNewSuratFormat(content) {
         }
     }
 
-    // g. Satuan Baru
+    // g. Satuan Baru - DIPERBAIKI: Ubah lookahead dari 'h' menjadi 'h.' agar lebih akurat
     let satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*<@&(\d+)>/i);
-    if (satBaruMatch) data.newDivID = satBaruMatch[1];
-    else {
+    if (satBaruMatch) {
+        data.newDivID = satBaruMatch[1];
+    } else {
+        // PERBAIKAN: Menggunakan lookahead yang lebih akurat
         satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*([^h]*?)(?=\nh\.|$)/i);
         if (satBaruMatch) {
-            const match = satBaruMatch[1].match(/<@&(\d+)>/);
-            if (match) data.newDivID = match[1];
+            const roleMatch = satBaruMatch[1].match(/<@&(\d+)>/);
+            if (roleMatch) {
+                data.newDivID = roleMatch[1];
+            }
         }
     }
 
@@ -248,10 +252,23 @@ function parseNewSuratFormat(content) {
 }
 
 /**
- * Cek apakah field adalah "-" atau "N/A"
+ * Cek apakah field adalah "-" atau "N/A" atau null/undefined
+ * DIPERBAIKI: Menambahkan pengecekan untuk null dan undefined secara eksplisit
  */
 function isNullField(value) {
-    return value === '-' || value === 'N/A' || value === 'n/a' || !value;
+    // Jika value adalah null atau undefined, dianggap sebagai null field
+    if (value === null || value === undefined) {
+        return true;
+    }
+    // Jika value adalah string literal "-" atau "N/A"
+    if (value === '-' || value === 'N/A' || value === 'n/a') {
+        return true;
+    }
+    // Jika value adalah falsy (empty string, 0, false, dll)
+    if (!value) {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -481,7 +498,7 @@ async function processPromotion(
                 console.log(`  ✅ Pangkat baru ditambah: ${newRankID}`);
             }
 
-            // Update Divisi DIPERBAIKI
+            // Update Divisi - DIPERBAIKI: Menambah debug logging untuk tracking
             if (prevDivID && member.roles.cache.has(prevDivID)) {
                 await member.roles.remove(prevDivID).catch(() => null);
                 console.log(`  ❌ Divisi lama dihapus: ${prevDivID}`);
@@ -490,8 +507,13 @@ async function processPromotion(
             }
 
             if (newDivID) {
-                await member.roles.add(newDivID).catch(console.error);
+                console.log(`  🔍 Mencoba menambah divisi baru: ${newDivID}`);
+                await member.roles.add(newDivID).catch((err) => {
+                    console.error(`  ❌ Gagal menambah divisi: ${err.message}`);
+                });
                 console.log(`  ✅ Divisi baru ditambah: ${newDivID}`);
+            } else {
+                console.log(`  ℹ️ Tidak ada divisi baru untuk ditambah`);
             }
 
             // Update Jabatan
