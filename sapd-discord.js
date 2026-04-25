@@ -213,24 +213,27 @@ function parseNewSuratFormat(content) {
         }
     }
 
-        // f. Satuan Lama
-    const satLamaLine = body.match(/f\.\s*Satuan\s*Lama\s*[:*]*\s*([^\n]+)/i);
-    if (satLamaLine) {
-        const content = satLamaLine[1].trim();
-        const matchID = content.match(/<@&(\d+)>/);
-        // Jika ada mention, ambil ID-nya. Jika tidak (misal '-'), ambil teks mentahnya.
-        data.prevDivID = matchID ? matchID[1] : content;
+    // f. Satuan Lama
+    let satLamaMatch = body.match(/f\.\s*Satuan\s*Lama\s*[:*]*\s*<@&(\d+)>/i);
+    if (satLamaMatch) data.prevDivID = satLamaMatch[1];
+    else {
+        satLamaMatch = body.match(/f\.\s*Satuan\s*Lama\s*[:*]*\s*([^g]*?)(?=\ng\.|$)/i);
+        if (satLamaMatch) {
+            const match = satLamaMatch[1].match(/<@&(\d+)>/);
+            if (match) data.prevDivID = match[1];
+        }
     }
 
     // g. Satuan Baru
-    const satBaruLine = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*([^\n]+)/i);
-    if (satBaruLine) {
-        const content = satBaruLine[1].trim();
-        const matchID = content.match(/<@&(\d+)>/);
-        // Jika ada mention, ambil ID-nya. Jika tidak (misal '-'), ambil teks mentahnya.
-        data.newDivID = matchID ? matchID[1] : content;
+    let satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*<@&(\d+)>/i);
+    if (satBaruMatch) data.newDivID = satBaruMatch[1];
+    else {
+        satBaruMatch = body.match(/g\.\s*Satuan\s*Baru\s*[:*]*\s*([^h]*?)(?=\nh\.|$)/i);
+        if (satBaruMatch) {
+            const match = satBaruMatch[1].match(/<@&(\d+)>/);
+            if (match) data.newDivID = match[1];
+        }
     }
-
 
     // h. Status
     const statusMatch = body.match(/h\.\s*Status\s*[:*]*\s*(\w+)/i);
