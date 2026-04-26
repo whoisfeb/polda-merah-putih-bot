@@ -362,6 +362,27 @@ client.on('messageCreate', async (message) => {
             return;
         }
 
+        // ============================
+        // HANDLE RESIGN / PTDH
+        // ============================
+        if (status === 'RESIGN' || status === 'PTDH') {
+
+            const member = await message.guild.members.fetch(userID);
+
+            for (const roleID of allGroupIDs) {
+                if (member.roles.cache.has(roleID)) {
+                    await member.roles.remove(roleID).catch(()=>null);
+                }
+            }
+
+            await member.roles.add(WARGA_ROLE_ID).catch(()=>null);
+
+            await member.setNickname(member.user.username.substring(0,32)).catch(()=>null);
+
+            await message.react('✅');
+            return;
+        }
+
         // REMOVE OLD RANK
         if (pangkatLama) {
 
