@@ -362,24 +362,54 @@ client.on('messageCreate', async (message) => {
             return;
         }
 
-        // ============================
-        // HANDLE RESIGN / PTDH
-        // ============================
-        if (status === 'RESIGN' || status === 'PTDH') {
+        // ======================================
+        // PTDH / RESIGN SYSTEM (FULL REMOVE)
+        // ======================================
+        if (status === 'PTDH' || status === 'RESIGN') {
 
             const member = await message.guild.members.fetch(userID);
 
+            // Hapus semua role polisi
             for (const roleID of allGroupIDs) {
                 if (member.roles.cache.has(roleID)) {
                     await member.roles.remove(roleID).catch(()=>null);
                 }
             }
 
-            await member.roles.add(WARGA_ROLE_ID).catch(()=>null);
+            // Hapus pangkat jika ada
+            if (pangkatLama) {
+                const roleID = extractRoleID(pangkatLama);
+                if (roleID) await member.roles.remove(roleID).catch(()=>null);
+            }
 
-            await member.setNickname(member.user.username.substring(0,32)).catch(()=>null);
+            // Tambahkan role warga
+            if (!member.roles.cache.has(WARGA_ROLE_ID)) {
+                await member.roles.add(WARGA_ROLE_ID).catch(()=>null);
+            }
 
-            await message.react('✅');
+            // =========================
+            // NICKNAME PTDH / RESIGN
+            // =========================
+            let clean = member.displayName || member.user.username;
+
+            if (clean.includes('|')) {
+                clean = clean.split('|')[1].trim();
+            }
+
+            let newName = clean;
+
+            if (status === 'RESIGN') {
+                newName = `RESIGN | ${clean}`;
+            }
+
+            if (status === 'PTDH') {
+                newName = `PTDH | ${clean}`;
+            }
+
+            await member.setNickname(newName.substring(0,32)).catch(()=>null);
+
+            await message.react('🔥');
+
             return;
         }
 
