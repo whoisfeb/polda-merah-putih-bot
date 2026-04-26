@@ -338,7 +338,7 @@ resmi dan sah, sesuai Peraturan Kepolisian Daerah, dengan pertimbangan sebagai b
 // ==========================================
 client.on('messageCreate', async (message) => {
 
-    if (message.author.bot) return;
+    if (message.author.bot && message.author.id !== client.user.id) return;
     if (message.channel.id !== PROMOTION_CHANNEL_ID) return;
 
     if (!message.content.includes('Pihak Terkait')) return;
