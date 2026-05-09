@@ -16,7 +16,7 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 // 2. Event ketika member baru bergabung
 client.on('guildMemberAdd', async (member) => {
     // ID Channel tujuan pengiriman pesan
-    const channelId = '1496865882721353981';
+    const channelId = '1496865882721353980';
     
     // Mengambil channel berdasarkan ID
     const channel = member.guild.channels.cache.get(channelId);
