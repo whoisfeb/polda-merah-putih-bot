@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const { Client, GatewayIntentBits, AuditLogEvent, EmbedBuilder, Partials } = require('discord.js');
 
-// Mengaktifkan seluruh hak akses (Intents) dan Partials agar pesan lama tetap terlacak saat dihapus
+// Mengaktifkan seluruh hak akses (Intents) dan Partials paling lengkap
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -11,20 +11,31 @@ const client = new Client({
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildPresences
     ],
-    partials: [Partials.Message, Partials.Channel, Partials.Reaction]
+    partials: [
+        Partials.Message, 
+        Partials.Channel, 
+        Partials.Reaction, 
+        Partials.GuildMember, 
+        Partials.User
+    ]
 });
 
 // GANTI ID DI BAWAH INI DENGAN ID CHANNEL LOG SERVER ANDA
 const LOG_CHANNEL_ID = '1496865882503118939'; 
 
 client.once('ready', () => {
-    console.log(`[SYSTEM] Bot Super Logs 100% Full Version aktif sebagai ${client.user.tag}`);
+    console.log(`========================================`);
+    console.log(`✅ Bot Super Logs 100% Full Version Online!`);
+    console.log(`Logged in as: ${client.user.tag}`);
+    console.log(`========================================`);
 });
 
 // Helper universal untuk mengirim log ke channel tujuan
 function sendLog(guild, embed) {
+    if (!guild) return;
     const logChannel = guild.channels.cache.get(LOG_CHANNEL_ID);
     if (logChannel) logChannel.send({ embeds: [embed] }).catch(err => console.error('Gagal mengirim log:', err));
 }
@@ -49,7 +60,7 @@ client.on('messageDelete', async (message) => {
 // Log Pesan Diedit
 client.on('messageUpdate', async (oldMessage, newMessage) => {
     if (!oldMessage.guild || oldMessage.author?.bot) return;
-    if (oldMessage.content === newMessage.content) return; // Mengabaikan jika hanya memicu preview link
+    if (oldMessage.content === newMessage.content) return; 
 
     const embed = new EmbedBuilder()
         .setTitle('✏️ Pesan Diedit')
@@ -65,13 +76,13 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
 
 
 // ==========================================
-// 2. MANAGEMENT CHANNELS & KATEGORI
+// 2. MANAGEMENT CHANNELS & KATEGORI (BERTAUTAN PERMISSION)
 // ==========================================
 
 // Log saat Channel / Kategori Dibuat
 client.on('channelCreate', async (channel) => {
     if (!channel.guild) return;
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Jeda aman untuk sistem audit log
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
     const fetchedLogs = await channel.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.ChannelCreate });
     const logEntry = fetchedLogs.entries.first();
     const executor = logEntry ? logEntry.executor.tag : 'Tidak diketahui';
@@ -102,20 +113,38 @@ client.on('channelDelete', async (channel) => {
     sendLog(channel.guild, embed);
 });
 
-// Log saat Channel / Kategori Diubah (Nama / Posisi Kategori)
+// Log saat Channel / Kategori / Izin Diperbarui
 client.on('channelUpdate', async (oldChannel, newChannel) => {
     if (!oldChannel.guild) return;
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const fetchedLogs = await oldChannel.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.ChannelUpdate });
-    const updateLog = fetchedLogs.entries.first();
-    const executor = updateLog ? updateLog.executor.tag : 'Tidak diketahui';
 
     const embed = new EmbedBuilder().setTimestamp().setColor('#f1c40f');
-    let adaPerubahan = false;
     const tipeKonten = oldChannel.type === 4 ? 'Kategori' : 'Channel';
 
+    // A. Deteksi Perubahan Izin (Permission Overwrites) Channel / Kategori
+    if (!oldChannel.permissionOverwrites.cache.equals(newChannel.permissionOverwrites.cache)) {
+        const fetchedLogs = await oldChannel.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.ChannelOverwriteUpdate });
+        const logEntry = fetchedLogs.entries.first();
+        const executor = logEntry ? logEntry.executor.tag : 'Tidak diketahui';
+
+        embed.setTitle(`🔒 Izin (Permission) ${tipeKonten} Diubah`)
+            .setColor('#e67e22')
+            .setDescription(`Hak akses pengaturan pada channel ${newChannel} telah dimodifikasi.`)
+            .addFields(
+                { name: 'Target Saluran', value: `**${newChannel.name}**` },
+                { name: 'Diubah Oleh', value: `**${executor}**` },
+                { name: 'Catatan', value: '*Periksa pengaturan channel secara langsung untuk melihat detail role/member yang diubah.*' }
+            );
+        sendLog(newChannel.guild, embed);
+        return; 
+    }
+
+    // B. Deteksi Perubahan Nama
     if (oldChannel.name !== newChannel.name) {
-        adaPerubahan = true;
+        const fetchedLogs = await oldChannel.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.ChannelUpdate });
+        const updateLog = fetchedLogs.entries.first();
+        const executor = updateLog ? updateLog.executor.tag : 'Tidak diketahui';
+
         embed.setTitle(`✏️ Nama ${tipeKonten} Diubah`)
             .setDescription(`Perubahan nama pada ${newChannel}`)
             .addFields(
@@ -123,10 +152,15 @@ client.on('channelUpdate', async (oldChannel, newChannel) => {
                 { name: 'Nama Baru', value: newChannel.name, inline: true },
                 { name: 'Pengubah', value: executor }
             );
+        sendLog(newChannel.guild, embed);
     }
 
+    // C. Deteksi Perpindahan Kategori Induk
     if (oldChannel.parentId !== newChannel.parentId) {
-        adaPerubahan = true;
+        const fetchedLogs = await oldChannel.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.ChannelUpdate });
+        const updateLog = fetchedLogs.entries.first();
+        const executor = updateLog ? updateLog.executor.tag : 'Tidak diketahui';
+
         const katLama = oldChannel.parent ? oldChannel.parent.name : 'Tanpa Kategori';
         const katBaru = newChannel.parent ? newChannel.parent.name : 'Tanpa Kategori';
 
@@ -137,9 +171,8 @@ client.on('channelUpdate', async (oldChannel, newChannel) => {
                 { name: 'Kategori Baru', value: katBaru, inline: true },
                 { name: 'Pengubah', value: executor }
             );
+        sendLog(newChannel.guild, embed);
     }
-
-    if (adaPerubahan) sendLog(newChannel.guild, embed);
 });
 
 
@@ -214,19 +247,24 @@ client.on('guildBanRemove', async (ban) => {
     sendLog(ban.guild, embed);
 });
 
-// Update Member (Nickname, Roles, Timeout)
+// Update Member (Nickname Lokal, Roles, Timeout)
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
+    if (oldMember.partial) await oldMember.fetch();
+
     const embed = new EmbedBuilder().setTimestamp().setColor('#3498db');
     let adaPerubahan = false;
 
-    // Log Ganti Nickname
+    // Log Ganti Nickname Server
     if (oldMember.nickname !== newMember.nickname) {
         adaPerubahan = true;
-        embed.setTitle('🏷️ Perubahan Nama Panggilan')
-            .setDescription(`Nama panggilan ${newMember} telah diubah.`)
+        const namaLama = oldMember.nickname || oldMember.user.username;
+        const namaBaru = newMember.nickname || newMember.user.username;
+
+        embed.setTitle('🏷️ Perubahan Nama Panggilan Server')
+            .setDescription(`Nama panggilan server ${newMember} telah diubah.`)
             .addFields(
-                { name: 'Semula', value: oldMember.nickname || oldMember.user.username, inline: true },
-                { name: 'Menjadi', value: newMember.nickname || newMember.user.username, inline: true }
+                { name: 'Semula', value: `\`${namaLama}\``, inline: true },
+                { name: 'Menjadi', value: `\`${namaBaru}\``, inline: true }
             );
     }
 
@@ -285,9 +323,40 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     if (adaPerubahan) sendLog(newMember.guild, embed);
 });
 
+// Log Perubahan Nama Akun Global Utama Discord
+client.on('userUpdate', async (oldUser, newUser) => {
+    if (oldUser.username !== newUser.username || oldUser.displayName !== newUser.displayName) {
+        const embed = new EmbedBuilder()
+            .setTitle('🌍 Perubahan Profil Akun Global')
+            .setColor('#9b59b6')
+            .setDescription(`User ${newUser} telah memperbarui informasi akun globalnya.`)
+            .setTimestamp();
+
+        if (oldUser.username !== newUser.username) {
+            embed.addFields(
+                { name: 'Username Lama', value: `\`@${oldUser.username}\``, inline: true },
+                { name: 'Username Baru', value: `\`@${newUser.username}\``, inline: true }
+            );
+        }
+
+        if (oldUser.displayName !== newUser.displayName) {
+            embed.addFields(
+                { name: 'Display Name Lama', value: `\`${oldUser.displayName}\``, inline: true },
+                { name: 'Display Name Baru', value: `\`${newUser.displayName}\``, inline: true }
+            );
+        }
+
+        client.guilds.cache.forEach(guild => {
+            if (guild.members.cache.has(newUser.id)) {
+                sendLog(guild, embed);
+            }
+        });
+    }
+});
+
 
 // ==========================================
-// 4. MANAGEMENT ROLES (PEMBUATAN / PENGHAPUSAN ROLE)
+// 4. MANAGEMENT ROLES (HAK AKSES / WARNA ROLE)
 // ==========================================
 
 client.on('roleCreate', async (role) => {
@@ -316,6 +385,39 @@ client.on('roleDelete', async (role) => {
         .setDescription(`Role **${role.name}** telah dihapus oleh **${executor}**.`)
         .setTimestamp();
     sendLog(role.guild, embed);
+});
+
+// Log Perubahan Izin Global (Permissions) pada Role
+client.on('roleUpdate', async (oldRole, newRole) => {
+    if (!oldRole.guild) return;
+    
+    if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const fetchedLogs = await oldRole.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.RoleUpdate });
+        const logEntry = fetchedLogs.entries.first();
+        const executor = logEntry ? logEntry.executor.tag : 'Tidak diketahui';
+
+        const oldPerms = oldRole.permissions.toArray();
+        const newPerms = newRole.permissions.toArray();
+        
+        const permsDitambahkan = newPerms.filter(p => !oldPerms.includes(p));
+        const permsDihapus = oldPerms.filter(p => !oldPerms.includes(p));
+
+        const embed = new EmbedBuilder()
+            .setTitle('🛠️ Izin (Permission) Global Role Diubah')
+            .setColor('#9b59b6')
+            .setDescription(`Hak akses global untuk role ${newRole} telah diperbarui oleh **${executor}**.`)
+            .setTimestamp();
+
+        if (permsDitambahkan.length > 0) {
+            embed.addFields({ name: '🟢 Izin Ditambahkan', value: `\`${permsDitambahkan.join(', ')}\`` });
+        }
+        if (permsDihapus.length > 0) {
+            embed.addFields({ name: '🔴 Izin Dicabut/Dihapus', value: `\`${permsDihapus.join(', ')}\`` });
+        }
+
+        sendLog(newRole.guild, embed);
+    }
 });
 
 
@@ -356,6 +458,6 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     }
 });
 
-// Menggunakan variabel environment token Anda
+// Login otomatis memanggil variabel process.env
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 client.login(TOKEN);
