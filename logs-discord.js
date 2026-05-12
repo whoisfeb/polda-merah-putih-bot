@@ -3,7 +3,6 @@ require('dotenv').config();
 
 const { Client, GatewayIntentBits, AuditLogEvent, EmbedBuilder, Partials } = require('discord.js');
 
-// Mengaktifkan seluruh hak akses (Intents) dan Partials paling lengkap
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -11,7 +10,7 @@ const client = new Client({
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.MessageContent, // Wajib aktif di Developer Portal
         GatewayIntentBits.GuildPresences
     ],
     partials: [
@@ -22,6 +21,7 @@ const client = new Client({
         Partials.User
     ]
 });
+
 
 // GANTI ID DI BAWAH INI DENGAN ID CHANNEL LOG SERVER ANDA
 const LOG_CHANNEL_ID = '1496865882503118939'; 
@@ -58,21 +58,36 @@ client.on('messageDelete', async (message) => {
 });
 
 // Log Pesan Diedit
+// Perbaikan Log Pesan Diedit (Bebas dari Bug Null / Kosong)
 client.on('messageUpdate', async (oldMessage, newMessage) => {
+    // Jika data pesan lama tidak ada di memori cache bot, suruh bot mengambilnya dari API Discord
+    if (oldMessage.partial) {
+        try {
+            await oldMessage.fetch();
+        } catch (error) {
+            console.error('Gagal mengambil data pesan lama dari API:', error);
+            return; // Berhenti jika pesan terlalu tua dan tidak bisa diambil lagi oleh sistem Discord
+        }
+    }
+
     if (!oldMessage.guild || oldMessage.author?.bot) return;
-    if (oldMessage.content === newMessage.content) return; 
+    if (oldMessage.content === newMessage.content) return; // Mengabaikan jika hanya memicu preview link
+
+    const penulis = oldMessage.author ? `${oldMessage.author} (${oldMessage.author.tag})` : 'User Tidak Diketahui';
 
     const embed = new EmbedBuilder()
         .setTitle('✏️ Pesan Diedit')
         .setColor('#f1c40f')
-        .setDescription(`Pesan dikirim oleh ${oldMessage.author} di channel ${oldMessage.channel} telah diubah.`)
+        .setDescription(`Pesan dikirim oleh ${penulis} di channel ${oldMessage.channel} telah diubah.`)
         .addFields(
-            { name: 'Sebelum', value: oldMessage.content || '*Kosong / File*' },
-            { name: 'Sesudah', value: newMessage.content || '*Kosong / File*' }
+            { name: 'Sebelum', value: oldMessage.content || '*Teks lama tidak dapat dimuat atau berupa file/embed*' },
+            { name: 'Sesudah', value: newMessage.content || '*Kosong / Hanya File*' }
         )
         .setTimestamp();
+        
     sendLog(newMessage.guild, embed);
 });
+
 
 
 // ==========================================
