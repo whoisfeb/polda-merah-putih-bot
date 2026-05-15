@@ -359,7 +359,7 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    const { userIDs, pangkatLama, pangkatBaru, satuanLama, satuanBaru, status } = data; // UBAH: userID menjadi userIDs
+    const { userIDs, pangkatLama, pangkatBaru, jabatanLama, jabatanBaru, satuanLama, satuanBaru, status } = data;
 
     try {
 
@@ -454,6 +454,24 @@ client.on('messageCreate', async (message) => {
             if (satuanBaru) {
 
                 const roles = extractRoleIDs(satuanBaru);
+
+                for (const r of roles) await member.roles.add(r).catch(()=>null);
+
+            }
+
+            // REMOVE OLD POSITION/JABATAN
+            if (jabatanLama) {
+
+                const roles = extractRoleIDs(jabatanLama);
+
+                for (const r of roles) await member.roles.remove(r).catch(()=>null);
+
+            }
+
+            // ADD NEW POSITION/JABATAN
+            if (jabatanBaru) {
+
+                const roles = extractRoleIDs(jabatanBaru);
 
                 for (const r of roles) await member.roles.add(r).catch(()=>null);
 
