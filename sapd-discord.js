@@ -172,12 +172,21 @@ function parsePromotionLetter(messageContent) {
     const statusMatch = content.match(/h\.\s*Status\s*:\s*(.+)/i);
 
     const nama = namaMatch ? namaMatch[1].trim() : null;
-    const userID = nama ? extractUserID(nama) : null;
+    const userIDs = []; // UBAH: Array untuk multiple users
 
-    if (!userID) return null;
+    // TAMBAH: Extract semua user mentions
+    if (nama) {
+        const userRegex = /<@!?(\d+)>/g;
+        let match;
+        while ((match = userRegex.exec(nama)) !== null) {
+            userIDs.push(match[1]);
+        }
+    }
+
+    if (userIDs.length === 0) return null; // UBAH: Check array kosong
 
     return {
-        userID,
+        userIDs, // UBAH: userID menjadi userIDs (array)
         pangkatLama: isEmpty(pangkatLamaMatch?.[1]) ? null : pangkatLamaMatch[1].trim(),
         pangkatBaru: isEmpty(pangkatBaruMatch?.[1]) ? null : pangkatBaruMatch[1].trim(),
         jabatanLama: isEmpty(jabatanLamaMatch?.[1]) ? null : jabatanLamaMatch[1].trim(),
@@ -350,142 +359,143 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    const { userID, pangkatLama, pangkatBaru, satuanLama, satuanBaru, status } = data;
+    const { userIDs, pangkatLama, pangkatBaru, satuanLama, satuanBaru, status } = data; // UBAH: userID menjadi userIDs
 
     try {
 
-        const member = await message.guild.members.fetch(userID);
         const botMember = message.guild.members.me;
 
-        if (member.roles.highest.position >= botMember.roles.highest.position) {
-            await message.react('⚠️');
-            return;
-        }
-
-        // ======================================
-        // PTDH / RESIGN SYSTEM (FULL REMOVE)
-        // ======================================
-        if (status === 'PTDH' || status === 'RESIGN') {
-
+        // TAMBAH: Loop untuk setiap user
+        for (const userID of userIDs) {
             const member = await message.guild.members.fetch(userID);
 
-            // Hapus semua role polisi
-            for (const roleID of allGroupIDs) {
-                if (member.roles.cache.has(roleID)) {
-                    await member.roles.remove(roleID).catch(()=>null);
-                }
+            if (member.roles.highest.position >= botMember.roles.highest.position) {
+                await message.react('⚠️');
+                continue; // UBAH: return menjadi continue
             }
 
-            // Hapus pangkat jika ada
+            // ======================================
+            // PTDH / RESIGN SYSTEM (FULL REMOVE)
+            // ======================================
+            if (status === 'PTDH' || status === 'RESIGN') {
+
+                // Hapus semua role polisi
+                for (const roleID of allGroupIDs) {
+                    if (member.roles.cache.has(roleID)) {
+                        await member.roles.remove(roleID).catch(()=>null);
+                    }
+                }
+
+                // Hapus pangkat jika ada
+                if (pangkatLama) {
+                    const roleID = extractRoleID(pangkatLama);
+                    if (roleID) await member.roles.remove(roleID).catch(()=>null);
+                }
+
+                // Tambahkan role warga
+                if (!member.roles.cache.has(WARGA_ROLE_ID)) {
+                    await member.roles.add(WARGA_ROLE_ID).catch(()=>null);
+                }
+
+                // =========================
+                // NICKNAME PTDH / RESIGN
+                // =========================
+                let clean = member.displayName || member.user.username;
+
+                if (clean.includes('|')) {
+                    clean = clean.split('|')[1].trim();
+                }
+
+                let newName = clean;
+
+                if (status === 'RESIGN') {
+                    newName = `RESIGN | ${clean}`;
+                }
+
+                if (status === 'PTDH') {
+                    newName = `PTDH | ${clean}`;
+                }
+
+                await member.setNickname(newName.substring(0,32)).catch(()=>null);
+
+                continue; // UBAH: return menjadi continue
+            }
+
+            // REMOVE OLD RANK
             if (pangkatLama) {
+
                 const roleID = extractRoleID(pangkatLama);
-                if (roleID) await member.roles.remove(roleID).catch(()=>null);
+
+                if (roleID) await member.roles.remove(roleID).catch(() => null);
+
             }
 
-            // Tambahkan role warga
-            if (!member.roles.cache.has(WARGA_ROLE_ID)) {
-                await member.roles.add(WARGA_ROLE_ID).catch(()=>null);
+            // ADD NEW RANK
+            let newRankID = null;
+
+            if (pangkatBaru) {
+
+                newRankID = extractRoleID(pangkatBaru);
+
+                if (newRankID) await member.roles.add(newRankID);
+
             }
 
-            // =========================
-            // NICKNAME PTDH / RESIGN
-            // =========================
-            let clean = member.displayName || member.user.username;
+            // REMOVE OLD DIVISION
+            if (satuanLama) {
 
-            if (clean.includes('|')) {
-                clean = clean.split('|')[1].trim();
+                const roles = extractRoleIDs(satuanLama);
+
+                for (const r of roles) await member.roles.remove(r).catch(()=>null);
+
             }
 
-            let newName = clean;
+            // ADD NEW DIVISION
+            if (satuanBaru) {
 
-            if (status === 'RESIGN') {
-                newName = `RESIGN | ${clean}`;
+                const roles = extractRoleIDs(satuanBaru);
+
+                for (const r of roles) await member.roles.add(r).catch(()=>null);
+
             }
 
-            if (status === 'PTDH') {
-                newName = `PTDH | ${clean}`;
-            }
+            // ======================================
+            // SYNC GROUP ROLE (FIXED)
+            // ======================================
+            if (newRankID && groupRoles[newRankID]) {
 
-            await member.setNickname(newName.substring(0,32)).catch(()=>null);
+                const targetGroupID = groupRoles[newRankID];
 
-            await message.react('🔥');
+                for (const groupID of groupRoleIDs) {
 
-            return;
-        }
+                    if (member.roles.cache.has(groupID) && groupID !== targetGroupID) {
 
-        // REMOVE OLD RANK
-        if (pangkatLama) {
+                        await member.roles.remove(groupID).catch(()=>null);
 
-            const roleID = extractRoleID(pangkatLama);
-
-            if (roleID) await member.roles.remove(roleID).catch(() => null);
-
-        }
-
-        // ADD NEW RANK
-        let newRankID = null;
-
-        if (pangkatBaru) {
-
-            newRankID = extractRoleID(pangkatBaru);
-
-            if (newRankID) await member.roles.add(newRankID);
-
-        }
-
-        // REMOVE OLD DIVISION
-        if (satuanLama) {
-
-            const roles = extractRoleIDs(satuanLama);
-
-            for (const r of roles) await member.roles.remove(r).catch(()=>null);
-
-        }
-
-        // ADD NEW DIVISION
-        if (satuanBaru) {
-
-            const roles = extractRoleIDs(satuanBaru);
-
-            for (const r of roles) await member.roles.add(r).catch(()=>null);
-
-        }
-
-        // ======================================
-        // SYNC GROUP ROLE (FIXED)
-        // ======================================
-        if (newRankID && groupRoles[newRankID]) {
-
-            const targetGroupID = groupRoles[newRankID];
-
-            for (const groupID of groupRoleIDs) {
-
-                if (member.roles.cache.has(groupID) && groupID !== targetGroupID) {
-
-                    await member.roles.remove(groupID).catch(()=>null);
+                    }
 
                 }
 
+                await member.roles.add(targetGroupID);
+
             }
 
-            await member.roles.add(targetGroupID);
+            if (newRankID) await member.roles.add(POLICE_MAIN_ROLE_ID);
 
-        }
+            // UPDATE NICKNAME
+            if (newRankID && rankPrefixes[newRankID]) {
 
-        if (newRankID) await member.roles.add(POLICE_MAIN_ROLE_ID);
+                const prefix = rankPrefixes[newRankID];
 
-        // UPDATE NICKNAME
-        if (newRankID && rankPrefixes[newRankID]) {
+                let clean = member.displayName;
 
-            const prefix = rankPrefixes[newRankID];
+                if (clean.includes('|')) clean = clean.split('|')[1].trim();
 
-            let clean = member.displayName;
+                await member.setNickname(`${prefix} | ${clean}`.substring(0,32));
 
-            if (clean.includes('|')) clean = clean.split('|')[1].trim();
+            }
 
-            await member.setNickname(`${prefix} | ${clean}`.substring(0,32));
-
-        }
+        } // TAMBAH: Tutup loop for
 
         await message.react('✅');
 
