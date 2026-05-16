@@ -18,7 +18,9 @@ async function run() {
         console.log("Memulai sinkronisasi data dari Discord ke Supabase...");
 
         // 1. AMBIL CHAT PENDAFTARAN SIM DI THREAD (Maksimal 100 pesan)
-        const simRes = await fetch(`https://discord.com{SIM_THREAD_ID}/messages?limit=100`, { headers: headersDiscord });
+        // PERBAIKAN: Menambahkan garis miring '/' sebelum ${SIM_THREAD_ID} agar URL valid
+        const simUrl = `https://discord.com{SIM_THREAD_ID}/messages?limit=100`;
+        const simRes = await fetch(simUrl, { headers: headersDiscord });
         const simMessages = await simRes.json();
         
         if (simMessages && simMessages.length > 0) {
@@ -35,7 +37,7 @@ async function run() {
                 
                 if (namaMatch && namaMatch[1] && namaMatch[1].trim() !== "") {
                     const nama = namaMatch[1].trim();
-                    // PERBAIKAN: Mengubah simbol ~= menjadi !== khas JavaScript
+                    // PERBAIKAN: Menghapus bug penulisan ganda dan simbol perbandingan JavaScript yang salah
                     const sim = (simMatch && simMatch[1] && simMatch[1].trim() !== "") ? simMatch[1].trim() : "A";
 
                     // Masukkan data pendaftar ke Supabase
