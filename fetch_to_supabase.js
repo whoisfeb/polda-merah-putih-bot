@@ -1,5 +1,4 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
-// Disesuaikan dengan workflow Anda (SUPABASE_ANON_KEY & DISCORD_BOT_TOKEN)
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY; 
 const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
@@ -36,7 +35,8 @@ async function run() {
                 
                 if (namaMatch && namaMatch[1] && namaMatch[1].trim() !== "") {
                     const nama = namaMatch[1].trim();
-                    const sim = (simMatch && simMatch[1] && simMatch[1].trim() ~= "") ? simMatch[1].trim() : "A";
+                    // PERBAIKAN: Mengubah simbol ~= menjadi !== khas JavaScript
+                    const sim = (simMatch && simMatch[1] && simMatch[1].trim() !== "") ? simMatch[1].trim() : "A";
 
                     // Masukkan data pendaftar ke Supabase
                     await fetch(`${SUPABASE_URL}/rest/v1/format_sim`, {
