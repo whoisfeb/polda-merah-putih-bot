@@ -18,6 +18,7 @@ async function run() {
         console.log("Memulai sinkronisasi data dari Discord ke Supabase...");
 
         // 1. AMBIL CHAT PENDAFTARAN SIM DI THREAD
+        // PERBAIKAN MUTLAK: Menggunakan tanda backtick (`) agar ${SIM_THREAD_ID} terbaca sebagai angka ID
         const simUrl = `https://discord.com{SIM_THREAD_ID}/messages?limit=100`;
         const simRes = await fetch(simUrl, { headers: headersDiscord });
         const simMessages = await simRes.json();
@@ -50,7 +51,8 @@ async function run() {
         }
 
         // 2. AMBIL DAFTAR TOPIC FORUM AKTIF
-        const forumRes = await fetch(`https://discord.com{FORUM_CHANNEL_ID}/threads/active`, { headers: headersDiscord });
+        const forumUrl = `https://discord.com{FORUM_CHANNEL_ID}/threads/active`;
+        const forumRes = await fetch(forumUrl, { headers: headersDiscord });
         const forumData = await forumRes.json();
         
         if (forumData && forumData.threads) {
@@ -59,7 +61,7 @@ async function run() {
                 await fetch(`${SUPABASE_URL}/rest/v1/daftar_forum`, {
                     method: 'POST',
                     headers: headersSupabase,
-                    body: JSON.stringify({ id: thread.id, values: thread.name })
+                    body: JSON.stringify({ id: thread.id, judul: thread.name })
                 });
             }
             console.log("Daftar Forum polda sukses diperbarui!");
