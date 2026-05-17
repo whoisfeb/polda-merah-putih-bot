@@ -1,6 +1,7 @@
-import { Client, GatewayIntentBits, ChannelType } from 'discord.js';
-import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
+// Ganti baris import paling atas dengan kode di bawah ini:
+const { Client, GatewayIntentBits, ChannelType } = require('discord.js');
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
 // Masukkan ID Thread "LOKET PEMBUATAN SIM" Anda langsung di sini
 const CONFIG = {
