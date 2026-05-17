@@ -1,14 +1,23 @@
 // Ganti baris import paling atas dengan kode di bawah ini:
 const { Client, GatewayIntentBits, ChannelType } = require('discord.js');
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws'); // Tambahkan baris ini
 require('dotenv').config();
 
-// Masukkan ID Thread "LOKET PEMBUATAN SIM" Anda langsung di sini
+// Konfigurasi ID langsung di dalam kode JS
 const CONFIG = {
-    THREAD_CHANNEL_ID: "1505228395963879616" 
+    THREAD_CHANNEL_ID: "1505228395963879616" // Pastikan ID Thread SIM Anda sudah benar di sini
 };
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+// Tambahkan opsi realtime dan transport ws di bawah ini
+const supabase = createClient(
+    process.env.SUPABASE_URL, 
+    process.env.SUPABASE_ANON_KEY,
+    {
+        auth: { persistSession: false },
+        realtime: { transport: ws }
+    }
+);
 
 const client = new Client({
     intents: [
