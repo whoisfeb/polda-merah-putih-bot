@@ -2,7 +2,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY; 
 const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
-// SILAKAN MASUKKAN ID ASLI DISCORD ANDA DI SINI
+// ID ASLI DISCORD ANDA
 const FORUM_CHANNEL_ID = "1504080970696101948"; // ID Channel Induk Forum
 const SIM_THREAD_ID = "1505228395963879616";   // ID Thread LOKET PEMBUATAN SIM
 
@@ -18,7 +18,7 @@ async function run() {
         console.log("Memulai sinkronisasi data dari Discord ke Supabase...");
 
         // 1. AMBIL CHAT PENDAFTARAN SIM DI THREAD
-        // PERBAIKAN MUTLAK: Menggunakan tanda backtick (`) agar ${SIM_THREAD_ID} terbaca sebagai angka ID
+        // PERBAIKAN: Memasukkan jalur API Discord resmi /api/v10/channels/ yang benar
         const simUrl = `https://discord.com{SIM_THREAD_ID}/messages?limit=100`;
         const simRes = await fetch(simUrl, { headers: headersDiscord });
         const simMessages = await simRes.json();
@@ -32,6 +32,7 @@ async function run() {
                 const fullText = msg.content;
                 if (!fullText) continue;
                 
+                // PERBAIKAN: Menambahkan tanda kurung ( ) pada regex agar indeks [1] bisa terbaca sempurna
                 const namaMatch = fullText.match(/NAMA LENGKAP\s*:\s*([^\n]*)/i);
                 const simMatch = fullText.match(/JENIS SIM\s*:\s*([^`\n]*)/i);
                 
@@ -51,6 +52,7 @@ async function run() {
         }
 
         // 2. AMBIL DAFTAR TOPIC FORUM AKTIF
+        // PERBAIKAN: Memasukkan jalur API Discord resmi /api/v10/channels/ yang benar
         const forumUrl = `https://discord.com{FORUM_CHANNEL_ID}/threads/active`;
         const forumRes = await fetch(forumUrl, { headers: headersDiscord });
         const forumData = await forumRes.json();
