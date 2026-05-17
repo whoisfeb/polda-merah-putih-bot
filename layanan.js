@@ -24,10 +24,9 @@ const client = new Client({
     ],
 });
 
-// Fungsi pembantu untuk merapikan teks hasil regex secara aman
-const cleanText = (match) => match && match[1] ? match[1].trim().replace(/[\r\n]+/g, '') : null;
+// Perbaikan fungsi pembersih teks agar aman mengambil indeks grup ke-1
+const cleanText = (match) => match && match[1] ? match[1].trim() : null;
 
-// Fungsi mandiri untuk memproses dan menyimpan data ke Supabase (Anti-Ganda)
 async function prosesDanSimpanPesan(message) {
     if (message.author.bot) return;
 
@@ -35,20 +34,22 @@ async function prosesDanSimpanPesan(message) {
     if (!content.includes("FORMAT PEMBUATAN SIM") || !content.includes("PASSPORT/UCP")) return;
 
     try {
-        // 1. CEK ANTI-GANDA: Periksa apakah ID pesan sudah terdaftar di Supabase
         const { data: existingData } = await supabase
             .from('pendaftaran_sim')
             .select('message_id')
             .eq('message_id', message.id)
             .maybeSingle();
 
-        if (existingData) return; // Jika sudah ada, langsung lewati (skip)
+        if (existingData) return; 
 
-        // 2. Ekstraksi Data Regex
-        const passportMatch = content.match(/PASSPORT\/UCP\s*:\s*(.*)/i);
-        const namaMatch = content.match(/NAMA LENGKAP\s*:\s*(.*)/i);
-        const noHpMatch = content.match(/NOMOR HP\s*:\s*(.*)/i);
-        const jenisSimMatch = content.match(/JENIS SIM\s*:\s*(.*)/i);
+        // ==================== PERBAIKAN UTAMA: REGEX ANTI-LECOK ====================
+        // Menggunakan [^\n\r]+ agar pencarian teks BERHENTI tepat saat menyentuh batas akhir baris/enter
+        const passportMatch   = content.match(/PASSPORT\s*[\/|]\s*UCP\s*:\s*([^\n\r]+)/i);
+        const namaMatch       = content.match(/NAMA\s*LENGKAP\s*:\s*([^\n\r]+)/i);
+        const noHpMatch       = content.match(/NOMOR\s*HP\s*:\s*([^\n\r]+)/i);
+        const jenisSimMatch   = content.match(/JENIS\s*SIM\s*:\s*([^\n\r]+)/i);
+        // ===========================================================================
+        
         const fotoKtpUrl = message.attachments.first() ? message.attachments.first().url : null;
 
         const payload = {
@@ -63,7 +64,6 @@ async function prosesDanSimpanPesan(message) {
             created_at: new Date(message.createdTimestamp).toISOString()
         };
 
-        // 3. Masukkan ke Supabase
         const { error } = await supabase.from('pendaftaran_sim').insert([payload]);
         if (!error) {
             console.log(`✅ Sukses menyimpan data SIM milik: ${payload.nama_lengkap}`);
@@ -76,7 +76,7 @@ async function prosesDanSimpanPesan(message) {
     }
 }
 
-// --- EVENT 1: PEMINDAIAN MASSAL PESAN LAMA SAAT BOT MENYALA ---
+// --- EVENT 1: PEMINDAIAN MASSAL PESAN LAMA ---
 client.once('ready', async () => {
     console.log(`🤖 Bot Layanan SIM Online: ${client.user.tag}`);
     console.log(`⏳ Memulai pemindaian menyeluruh isi riwayat thread...`);
@@ -92,7 +92,6 @@ client.once('ready', async () => {
         let totalScanned = 0;
         let running = true;
 
-        // Melakukan looping scrolling ke atas tanpa batas sampai pesan paling awal (pertama dibuat)
         while (running) {
             const options = { limit: 100 };
             if (lastMessageId) options.before = lastMessageId;
@@ -105,13 +104,12 @@ client.once('ready', async () => {
 
             for (const [id, message] of messages) {
                 await prosesDanSimpanPesan(message);
-                lastMessageId = message.id; // Geser jangkar pemindaian ke pesan yang lebih lama
+                lastMessageId = message.id; 
             }
 
             totalScanned += messages.size;
             console.log(`🔄 Telah memindai ${totalScanned} riwayat pesan...`);
             
-            // Beri jeda 1 detik per ambil data agar tidak terkena Rate Limit API Discord
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
@@ -122,12 +120,9 @@ client.once('ready', async () => {
     }
 });
 
-// --- EVENT 2: STAND-BY MENUNGGU PESAN BARU (REALTIME) ---
+// --- EVENT 2: STAND-BY MENUNGGU PESAN BARU ---
 client.on('messageCreate', async (message) => {
-    // Pastikan pesan masuk di ID Thread yang dipantau
     if (message.channel.id !== CONFIG.THREAD_CHANNEL_ID) return;
-    
-    // Langsung proses secara otomatis
     await prosesDanSimpanPesan(message);
 });
 
