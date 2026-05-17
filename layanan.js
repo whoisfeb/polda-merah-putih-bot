@@ -8,31 +8,30 @@ const SIM_THREAD_ID = "1505228395963879616";   // ID Thread LOKET PEMBUATAN SIM
 
 async function run() {
     try {
-        const headersDiscord = { 'Authorization': `Bot ${DISCORD_TOKEN}` };
+        const headersDiscord = { 'Authorization': 'Bot ' + DISCORD_TOKEN };
         const headersSupabase = {
             'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
             'Content-Type': 'application/json'
         };
 
         console.log("Memulai sinkronisasi data dari Discord ke Supabase...");
 
         // 1. AMBIL CHAT PENDAFTARAN SIM DI THREAD
-        // PERBAIKAN: Memasukkan jalur API Discord resmi /api/v10/channels/ yang benar
-        const simUrl = `https://discord.com{SIM_THREAD_ID}/messages?limit=100`;
+        // PERBAIKAN MUTLAK: Menggunakan tanda tambah (+) agar tidak ada salah ketik tanda baca internet
+        const simUrl = "https://discord.com" + SIM_THREAD_ID + "/messages?limit=100";
         const simRes = await fetch(simUrl, { headers: headersDiscord });
         const simMessages = await simRes.json();
         
         if (simMessages && simMessages.length > 0) {
             // Bersihkan tabel lama di Supabase agar tidak duplikat
-            await fetch(`${SUPABASE_URL}/rest/v1/format_sim?id=not.is.null`, { method: 'DELETE', headers: headersSupabase });
+            await fetch(SUPABASE_URL + "/rest/v1/format_sim?id=not.is.null", { method: 'DELETE', headers: headersSupabase });
 
             // Baca chat dari terlama ke terbaru
             for (const msg of simMessages.reverse()) {
                 const fullText = msg.content;
                 if (!fullText) continue;
                 
-                // PERBAIKAN: Menambahkan tanda kurung ( ) pada regex agar indeks [1] bisa terbaca sempurna
                 const namaMatch = fullText.match(/NAMA LENGKAP\s*:\s*([^\n]*)/i);
                 const simMatch = fullText.match(/JENIS SIM\s*:\s*([^`\n]*)/i);
                 
@@ -41,7 +40,7 @@ async function run() {
                     const sim = (simMatch && simMatch[1] && simMatch[1].trim() !== "") ? simMatch[1].trim() : "A";
 
                     // Kirim data ke Supabase
-                    await fetch(`${SUPABASE_URL}/rest/v1/format_sim`, {
+                    await fetch(SUPABASE_URL + "/rest/v1/format_sim", {
                         method: 'POST',
                         headers: headersSupabase,
                         body: JSON.stringify({ nama_lengkap: nama, jenis_sim: sim })
@@ -52,15 +51,14 @@ async function run() {
         }
 
         // 2. AMBIL DAFTAR TOPIC FORUM AKTIF
-        // PERBAIKAN: Memasukkan jalur API Discord resmi /api/v10/channels/ yang benar
-        const forumUrl = `https://discord.com{FORUM_CHANNEL_ID}/threads/active`;
+        const forumUrl = "https://discord.com" + FORUM_CHANNEL_ID + "/threads/active";
         const forumRes = await fetch(forumUrl, { headers: headersDiscord });
         const forumData = await forumRes.json();
         
         if (forumData && forumData.threads) {
-            await fetch(`${SUPABASE_URL}/rest/v1/daftar_forum?id=not.is.null`, { method: 'DELETE', headers: headersSupabase });
+            await fetch(SUPABASE_URL + "/rest/v1/daftar_forum?id=not.is.null", { method: 'DELETE', headers: headersSupabase });
             for (const thread of forumData.threads) {
-                await fetch(`${SUPABASE_URL}/rest/v1/daftar_forum`, {
+                await fetch(SUPABASE_URL + "/rest/v1/daftar_forum", {
                     method: 'POST',
                     headers: headersSupabase,
                     body: JSON.stringify({ id: thread.id, judul: thread.name })
