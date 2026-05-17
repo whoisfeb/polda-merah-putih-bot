@@ -8,6 +8,7 @@
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
     "axios": "^1.6.0"
+    "ws": "^8.17.0"
   },
   "scripts": {
     "start": "node bot-sapd.js & node sapd-discord.js & node surat.js & node welcomer.js & node logs-discord.js & node layanan.js",
