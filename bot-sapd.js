@@ -13,9 +13,15 @@ const https = require('https');
 const path = require('path');
 
 // --- KONFIGURASI SUPABASE ---
+const ws = require('ws'); // 1. Tambahkan library WebSocket di sini
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 2. Perbarui inisialisasi dengan menambahkan opsi realtime transport ws
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+    realtime: { transport: ws }
+});
 
 // --- INISIALISASI CLIENT DISCORD ---
 const client = new Client({ 
