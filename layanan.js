@@ -11,8 +11,8 @@ const CONFIG = {
 // ========================================================================
 
 const supabase = createClient(
-    process.env.SUPABASE_URL, 
-    process.env.SUPABASE_ANON_KEY,
+    process.env.LAYANAN_URL, 
+    process.env.LAYANAN_ANON_KEY,
     {
         auth: { persistSession: false },
         realtime: { transport: ws }
