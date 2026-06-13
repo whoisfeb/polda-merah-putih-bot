@@ -454,7 +454,8 @@ async function processForumLogs(guild) {
         const { data: logs, error: fetchError } = await supabase
             .from('absensi_sapd')
             .select('*')
-            .eq('is_archived', false);
+            .eq('is_archived', false)
+            .in('status_approval', ['APPROVED', 'APPROVE', 'DENIED']); // Menyaring 3 status ini saja
 
         if (fetchError) {
             console.error("[DATABASE ERROR]", fetchError.message);
