@@ -3,10 +3,10 @@ const { createClient } = require('@supabase/supabase-js');
 const ws = require('ws');
 require('dotenv').config();
 
-// ==================== PERBAIKAN: DUA CHANNEL BERBEDA ====================
+// ==================== CONFIG: ID THREAD DISCORD ====================
 const CONFIG = {
     THREAD_SIM_ID: "1505228395963879616",  // ID Thread khusus SIM
-    THREAD_SKCK_ID: "1506887659585536040" // GANTI DENGAN ID CHANNEL/THREAD SKCK
+    THREAD_SKCK_ID: "1506887659585536040" // ID Thread khusus SKCK
 };
 // ========================================================================
 
@@ -40,29 +40,57 @@ async function prosesDanSimpanPesan(message) {
     // 1. PROSES DATA JIKA MASUK KE CHANNEL SIM
     if (isSimChannel && content.includes("FORMAT PEMBUATAN SIM") && content.includes("PASSPORT/UCP")) {
         try {
-            const { data: existingData } = await supabase.from('pendaftaran_sim').select('message_id').eq('message_id', message.id).maybeSingle();
-            if (existingData) return; 
-
-            const passportMatch = content.match(/PASSPORT\s*[\/|]\s*UCP\s*:\s*([^\n\r]+)/i);
-            const namaMatch     = content.match(/NAMA\s*LENGKAP\s*:\s*([^\n\r]+)/i);
-            const noHpMatch     = content.match(/NOMOR\s*HP\s*:\s*([^\n\r]+)/i);
-            const jenisSimMatch = content.match(/JENIS\s*SIM\s*:\s*([^\n\r]+)/i);
+            // Pemotongan teks dengan Regex baru (*) agar baris kosong tidak error
+            const passportMatch = content.match(/PASSPORT\s*[\/|]\s*UCP\s*:\s*([^\n\r]*)/i);
+            const namaMatch     = content.match(/NAMA\s*LENGKAP\s*:\s*([^\n\r]*)/i);
+            const noHpMatch     = content.match(/NOMOR\s*HP\s*:\s*([^\n\r]*)/i);
+            const jenisSimMatch = content.match(/JENIS\s*SIM\s*:\s*([^\n\r]*)/i);
             const fotoKtpUrl    = message.attachments.first() ? message.attachments.first().url : null;
+
+            const passportUcp = cleanText(passportMatch);
+            const jenisSimBaru = cleanText(jenisSimMatch);
+
+            if (!passportUcp) return; 
+
+            // Cek apakah data user sudah ada sebelumnya untuk menggabungkan Jenis SIM
+            const { data: dataLama } = await supabase
+                .from('pendaftaran_sim')
+                .select('jenis_sim')
+                .eq('passport_ucp', passportUcp)
+                .maybeSingle();
+
+            let jenisSimFinal = jenisSimBaru;
+
+            if (dataLama) {
+                const daftarSimLama = dataLama.jenis_sim ? dataLama.jenis_sim.split(',').map(s => s.trim()) : [];
+                
+                // Masukkan jenis SIM ke daftar jika belum terdaftar sebelumnya (mencegah duplikat seperti A, A)
+                if (jenisSimBaru && !daftarSimLama.includes(jenisSimBaru)) {
+                    daftarSimLama.push(jenisSimBaru);
+                }
+                
+                // Urutkan alfabetis agar rapi (A, B) lalu satukan dengan koma
+                jenisSimFinal = daftarSimLama.sort().join(', ');
+            }
 
             const payload = {
                 message_id: message.id,
                 author_id: message.author.id,
                 author_name: message.author.username,
-                passport_ucp: cleanText(passportMatch),
+                passport_ucp: passportUcp,
                 nama_lengkap: cleanText(namaMatch),
                 nomor_hp: cleanText(noHpMatch),
-                jenis_sim: cleanText(jenisSimMatch),
-                foto_ktp_url: fotoKtpUrl,
+                jenis_sim: jenisSimFinal,
+                foto_ktp_url: fotoKtpUrl || (dataLama ? undefined : null), // Gunakan foto lama jika foto baru kosong
                 created_at: new Date(message.createdTimestamp).toISOString()
             };
 
-            const { error } = await supabase.from('pendaftaran_sim').insert([payload]);
-            if (!error) console.log(`✅ [SIM] Sukses menyimpan data milik: ${payload.nama_lengkap}`);
+            // Menggunakan UPSERT untuk memperbarui baris data yang sama
+            const { error } = await supabase
+                .from('pendaftaran_sim')
+                .upsert([payload], { onConflict: 'passport_ucp' });
+
+            if (!error) console.log(`✅ [SIM] Sukses memperbarui/menyimpan data milik: ${payload.nama_lengkap} (${jenisSimFinal})`);
             else console.error(`❌ [SIM] Gagal menyimpan ke Supabase:`, error.message);
 
         } catch (err) {
@@ -73,21 +101,20 @@ async function prosesDanSimpanPesan(message) {
     // 2. PROSES DATA JIKA MASUK KE CHANNEL SKCK
     if (isSkckChannel && content.includes("FORMAT PEMBUATAN SKCK") && content.includes("PASSPORT/UCP")) {
         try {
-            const { data: existingData } = await supabase.from('pendaftaran_skck').select('message_id').eq('message_id', message.id).maybeSingle();
-            if (existingData) return; 
-
-            // Regex disesuaikan dengan kebutuhan SKCK (ditambahkan Keperluan pembuatan SKCK)
-            const passportMatch  = content.match(/PASSPORT\s*[\/|]\s*UCP\s*:\s*([^\n\r]+)/i);
-            const namaMatch      = content.match(/NAMA\s*LENGKAP\s*:\s*([^\n\r]+)/i);
-            const noHpMatch      = content.match(/NOMOR\s*HP\s*:\s*([^\n\r]+)/i);
-            const keperluanMatch = content.match(/KEPERLUAN\s*:\s*([^\n\r]+)/i); // Kolom tambahan SKCK
+            const passportMatch  = content.match(/PASSPORT\s*[\/|]\s*UCP\s*:\s*([^\n\r]*)/i);
+            const namaMatch      = content.match(/NAMA\s*LENGKAP\s*:\s*([^\n\r]*)/i);
+            const noHpMatch      = content.match(/NOMOR\s*HP\s*:\s*([^\n\r]*)/i);
+            const keperluanMatch = content.match(/KEPERLUAN\s*:\s*([^\n\r]*)/i);
             const fotoKtpUrl     = message.attachments.first() ? message.attachments.first().url : null;
+
+            const passportUcp = cleanText(passportMatch);
+            if (!passportUcp) return;
 
             const payload = {
                 message_id: message.id,
                 author_id: message.author.id,
                 author_name: message.author.username,
-                passport_ucp: cleanText(passportMatch),
+                passport_ucp: passportUcp,
                 nama_lengkap: cleanText(namaMatch),
                 nomor_hp: cleanText(noHpMatch),
                 keperluan: cleanText(keperluanMatch),
@@ -95,8 +122,12 @@ async function prosesDanSimpanPesan(message) {
                 created_at: new Date(message.createdTimestamp).toISOString()
             };
 
-            const { error } = await supabase.from('pendaftaran_skck').insert([payload]);
-            if (!error) console.log(`✅ [SKCK] Sukses menyimpan data milik: ${payload.nama_lengkap}`);
+            // Menggunakan UPSERT untuk memperbarui baris data SKCK yang sama
+            const { error } = await supabase
+                .from('pendaftaran_skck')
+                .upsert([payload], { onConflict: 'passport_ucp' });
+
+            if (!error) console.log(`✅ [SKCK] Sukses memperbarui/menyimpan data milik: ${payload.nama_lengkap}`);
             else console.error(`❌ [SKCK] Gagal menyimpan ke Supabase:`, error.message);
 
         } catch (err) {
@@ -105,7 +136,7 @@ async function prosesDanSimpanPesan(message) {
     }
 }
 
-// --- FUNGSI SCANNING RIWAYAT SECARA MASSTAL ---
+// --- FUNGSI SCANNING RIWAYAT SECARA MASSAL ---
 async function scanHistoryChannel(channelId) {
     try {
         const channel = await client.channels.fetch(channelId);
@@ -153,7 +184,6 @@ client.once('ready', async () => {
 
 // --- EVENT 2: STAND-BY MENUNGGU PESAN BARU ---
 client.on('messageCreate', async (message) => {
-    // Validasi agar bot hanya merespon jika pesan dikirim di salah satu dari dua channel di atas
     if (message.channel.id !== CONFIG.THREAD_SIM_ID && message.channel.id !== CONFIG.THREAD_SKCK_ID) return;
     await prosesDanSimpanPesan(message);
 });
