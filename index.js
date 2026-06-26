@@ -35,4 +35,4 @@ client.on('messageCreate', async (message) => {
 });
 
 // Jalankan bot menggunakan token dari file .env
-client.login(process.env.TOKEN);
+client.login(process.env.DISCORD_BOT_TOKEN);
