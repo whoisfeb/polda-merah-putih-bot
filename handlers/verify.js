@@ -21,7 +21,7 @@ function handleVerify(client) {
             
             const modal = new ModalBuilder()
                 .setCustomId('modal_verify')
-                .setTitle('Gangster Hytam Verification');
+                .setTitle('Sistem Verify Polda');
 
             const firstNameInput = new TextInputBuilder()
                 .setCustomId('first_name')
@@ -131,7 +131,7 @@ async function handleVerifyCommand(message) {
 
         // Membuat pesan Embed verifikasi
         const embed = new EmbedBuilder()
-            .setTitle('🔐 Gangster Hytam Verification')
+            .setTitle('🔐 Polda Verification')
             .setDescription('Silahkan klik tombol dibawah untuk mendapatkan role.')
             .setColor('#2f3136')
             .setFooter({ text: 'Pastikan mengisi dengan nama karakter anda.' });
