@@ -105,7 +105,7 @@ async function handleVerifyCommand(message) {
     
     // KONFIGURASI: Masukkan ID Role Admin Anda di dalam array ini (bisa lebih dari satu)
     const ALLOWED_ADMIN_ROLES = [
-        '1499605520603025516'
+        '1496865881739890806'
     ]; 
 
     // Abaikan jika pesan dari bot atau tidak diawali dengan prefix
