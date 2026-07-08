@@ -28,17 +28,17 @@ jobs:
             RANGE="$BEFORE_SHA..$AFTER_SHA"
           fi
 
-          # 2. Ambil data pendukung
-          AUTHOR_AVATAR="$(curl -s https://github.com{{ github.actor }} | grep avatar_url | cut -d '"' -f4)"
+          # 2. PERBAIKAN: Cara instan dan akurat mengambil URL avatar GitHub tanpa perlu API scraping
+          AUTHOR_AVATAR="https://github.com{{ github.actor }}.png"
           BRANCH="${{ github.ref_name }}"
           
           # 3. Hitung jumlah commit dalam push ini
           COMMIT_COUNT=$(git rev-list --count $RANGE)
           
-          # 4. Murni teks biasa: Format hanya [`sha`] pesan - author tanpa link markdown
+          # 4. Murni teks biasa tanpa link
           COMMIT_LIST=$(git log $RANGE --pretty=format:"\`%h\` %s - %an" | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # 5. Susun Payload JSON (Tanpa parameter "url" di judul maupun deskripsi)
+          # 5. Susun Payload JSON
           PAYLOAD=$(cat <<EOF
           {
             "embeds": [{
