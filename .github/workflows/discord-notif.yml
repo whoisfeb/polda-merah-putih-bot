@@ -35,10 +35,10 @@ jobs:
           # 3. Hitung jumlah commit dalam push ini
           COMMIT_COUNT=$(git rev-list --count $RANGE)
           
-          # 4. Menggunakan format git log murni teks biasa tanpa link markdown
+          # 4. Murni teks biasa: Format hanya [`sha`] pesan - author tanpa link markdown
           COMMIT_LIST=$(git log $RANGE --pretty=format:"\`%h\` %s - %an" | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # 5. PERBAIKAN UTAMA: Mengganti teks menjadi Gangster Hytam
+          # 5. Susun Payload JSON (Tanpa parameter "url" di judul maupun deskripsi)
           PAYLOAD=$(cat <<EOF
           {
             "embeds": [{
@@ -46,7 +46,7 @@ jobs:
                 "name": "${{ github.actor }}",
                 "icon_url": "$AUTHOR_AVATAR"
               },
-              "title": "[Polda-Merah-Putih:$BRANCH] $COMMIT_COUNT new commit(s)",
+              "title": "[whoisfeb/Polda-Merah-Putih:$BRANCH] $COMMIT_COUNT new commit(s)",
               "description": "$COMMIT_LIST",
               "color": 7506394
             }]
@@ -54,7 +54,7 @@ jobs:
           EOF
           )
 
-          # 6. Kirim ke Discord menggunakan token dari secret yang benar
+          # 6. Kirim ke Discord menggunakan token dari secret DISCORD_NOTIF
           echo "Mengirim $COMMIT_COUNT commit ke Discord..."
           curl -H "Content-Type: application/json" \
                -X POST \
