@@ -29,31 +29,32 @@ jobs:
           fi
 
           # 2. Ambil data pendukung
-          AUTHOR_AVATAR="https://github.com{{ github.actor }}.png"
+          AUTHOR_AVATAR="$(curl -s https://github.com{{ github.actor }} | grep avatar_url | cut -d '"' -f4)"
           BRANCH="${{ github.ref_name }}"
           
           # 3. Hitung jumlah commit dalam push ini
           COMMIT_COUNT=$(git rev-list --count $RANGE)
           
-          # 4. Ambil teks log commit mentah (tanpa manipulasi sed manual yang rawan error)
-          COMMIT_LIST=$(git log $RANGE --pretty=format:"\`%h\` %s - %an")
+          # 4. Menggunakan format git log murni teks biasa tanpa link markdown
+          COMMIT_LIST=$(git log $RANGE --pretty=format:"\`%h\` %s - %an" | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # 5. SOLUSI UTAMA: Menggunakan jq untuk menyusun JSON agar karakter spesial otomatis aman ter-escape
-          PAYLOAD=$(jq -n \
-            --arg name "${{ github.actor }}" \
-            --arg icon "$AUTHOR_AVATAR" \
-            --arg title "[whoisfeb/Polda-Merah-Putih:$BRANCH] $COMMIT_COUNT new commit(s)" \
-            --arg desc "$COMMIT_LIST" \
-            '{
-              embeds: [{
-                author: { name: $name, icon_url: $icon },
-                title: $title,
-                description: $desc,
-                color: 7506394
-              }]
-            }')
+          # 5. PERBAIKAN UTAMA: Mengganti teks menjadi Gangster Hytam
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [{
+              "author": {
+                "name": "${{ github.actor }}",
+                "icon_url": "$AUTHOR_AVATAR"
+              },
+              "title": "[whoisfeb/Polda-Merah-Putih:$BRANCH] $COMMIT_COUNT new commit(s)",
+              "description": "$COMMIT_LIST",
+              "color": 7506394
+            }]
+          }
+          EOF
+          )
 
-          # 6. Kirim ke Discord menggunakan token dari secret DISCORD_NOTIF
+          # 6. Kirim ke Discord menggunakan token dari secret yang benar
           echo "Mengirim $COMMIT_COUNT commit ke Discord..."
           curl -H "Content-Type: application/json" \
                -X POST \
